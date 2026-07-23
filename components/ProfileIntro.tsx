@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { User, Photo } from '../types';
 import { useLanguage } from '../context/LanguageContext';
+import { useNotify } from '../context/NotificationContext';
 import { 
   MAX_BIO_LENGTH, 
   MAX_FEATURED_PHOTOS, 
@@ -39,6 +40,7 @@ interface IntroDetails {
 
 const ProfileIntro: React.FC<ProfileIntroProps> = ({ currentUser, isOwnProfile, photos, onTabChange }) => {
   const { t, dir, language } = useLanguage();
+  const notify = useNotify();
   
   // Helper to safely extract user data for fallback
   const getUserData = (user: User) => user as any;
@@ -226,7 +228,7 @@ const ProfileIntro: React.FC<ProfileIntroProps> = ({ currentUser, isOwnProfile, 
   const handleSaveHobbies = () => {
     setHobbies(selectedHobbiesTemp);
     setIsHobbiesModalOpen(false);
-    // API sync would go here
+    notify(language === 'ar' ? 'تم حفظ الهوايات بنجاح' : 'Hobbies saved successfully', 'success');
   };
 
   // --- Featured Photos Handlers ---
@@ -289,7 +291,7 @@ const ProfileIntro: React.FC<ProfileIntroProps> = ({ currentUser, isOwnProfile, 
   const handleSaveFeatured = () => {
       setFeaturedPhotos(tempFeaturedPhotos);
       setIsFeaturedModalOpen(false);
-      // API sync would go here
+      notify(language === 'ar' ? 'تم حفظ الصور المميزة بنجاح' : 'Featured photos saved successfully', 'success');
   };
 
   const filteredHobbies = HOBBIES_LIST.filter(h => {

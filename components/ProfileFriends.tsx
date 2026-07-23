@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { User } from '../types';
 import { useLanguage } from '../context/LanguageContext';
+import { useNotify } from '../context/NotificationContext';
 
 // Types
 interface Friend {
@@ -73,6 +74,7 @@ const SUGGESTED_PEOPLE: Friend[] = [
 
 const ProfileFriends: React.FC<ProfileFriendsProps> = ({ onFriendClick, onMessageClick, initialTab = 'all' }) => {
   const { t, dir, language } = useLanguage();
+  const notify = useNotify();
   
   // Initialize friends from Local Storage or default to initial list
   const [friends, setFriends] = useState<Friend[]>(() => {
@@ -152,6 +154,7 @@ const ProfileFriends: React.FC<ProfileFriendsProps> = ({ onFriendClick, onMessag
   // --- Helpers ---
   const showNotification = (message: string, type: 'success' | 'info' = 'success') => {
       setNotification({ message, type });
+      notify(message, type);
       setTimeout(() => setNotification(null), 4000);
   };
 

@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { User, TabType } from '../types';
 import { useLanguage } from '../context/LanguageContext';
+import { useNotify } from '../context/NotificationContext';
 import { playAudio } from '../utils/audio';
 import { MediaPreviewCropModal } from './MediaPreviewCropModal';
 
@@ -53,6 +54,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   canViewContent = true
 }) => {
   const { t, dir, language } = useLanguage();
+  const notify = useNotify();
   const [showFriendMenu, setShowFriendMenu] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [showAvatarMenu, setShowAvatarMenu] = useState(false);
@@ -157,6 +159,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
       setShowPreviewModal(false);
       setPreviewImage(null);
       setPendingCallback(null);
+      notify(language === 'ar' ? 'تم تحديث الصورة بنجاح' : 'Image updated successfully', 'success');
   };
 
   const handleAvatarClick = (e: React.MouseEvent) => {
@@ -193,6 +196,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           setShowNameModal(false);
           setNewName('');
           setPasswordConfirm('');
+          notify(language === 'ar' ? 'تم تحديث الاسم بنجاح' : 'Name updated successfully', 'success');
       }, 1000);
   };
 
@@ -200,6 +204,9 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
       setShowFriendMenu(false);
       if (action === 'unfriend') {
           setFriendshipStatus('not_friends');
+          notify(language === 'ar' ? 'تم إلغاء الصداقة بنجاح' : 'Unfriended successfully', 'info');
+      } else if (action === 'block') {
+          notify(language === 'ar' ? 'تم حظر المستخدم بنجاح' : 'User blocked successfully', 'info');
       }
       if (onFriendAction) {
           onFriendAction(action, profileUser);
@@ -209,11 +216,13 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   const handleAddFriend = () => {
       playAudio('pop');
       setFriendshipStatus('request_sent');
+      notify(language === 'ar' ? 'تم إرسال طلب الصداقة بنجاح' : 'Friend request sent successfully', 'success');
   };
 
   const handleCancelRequest = () => {
       playAudio('pop');
       setFriendshipStatus('not_friends');
+      notify(language === 'ar' ? 'تم إلغاء طلب الصداقة' : 'Friend request cancelled', 'info');
   };
 
   const handleLockProfile = () => {
@@ -228,6 +237,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
       setIsLocking(false);
       setShowLockModal(false);
       setShowSettingsMenu(false);
+      notify(language === 'ar' ? 'تم تغيير إعدادات خصوصية الملف الشخصي' : 'Profile privacy settings updated', 'success');
     }, 1000);
   };
 

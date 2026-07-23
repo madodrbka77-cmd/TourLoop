@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Briefcase, GraduationCap, MapPin, Heart, Phone, Info, Clock, Globe, Plus, Save, X, Trash2, Users, Lock, ChevronDown, Home, Mail, Link as LinkIcon, Calendar, User as UserIcon, Languages, Mic, Quote, Droplet, PenLine, Star, Pen, Facebook, Instagram, Twitter, Linkedin, Youtube, Github, MessageCircle, Twitch } from 'lucide-react';
 import { User } from '../types';
 import { useLanguage } from '../context/LanguageContext';
+import { useNotify } from '../context/NotificationContext';
 import { 
   COUNTRIES_DATA, 
   SOCIAL_PLATFORMS, 
@@ -235,6 +236,7 @@ const getPlatformIcon = (platform: string) => {
 
 const ProfileAbout: React.FC<ProfileAboutProps> = ({ currentUser, readonly = false, setProfileUser }) => {
   const { t, dir, language } = useLanguage();
+  const notify = useNotify();
   const [activeSection, setActiveSection] = useState<SectionType>('overview');
 
   // Work
@@ -450,30 +452,40 @@ const ProfileAbout: React.FC<ProfileAboutProps> = ({ currentUser, readonly = fal
     if (type === 'family') setFamilyMembers(familyMembers.filter(f => f.id !== id));
     if (type === 'otherName') setOtherNames(otherNames.filter(n => n.id !== id));
     if (type === 'event') setLifeEvents(lifeEvents.filter(e => e.id !== id));
+    notify(language === 'ar' ? 'تم حذف العنصر بنجاح' : 'Item deleted successfully', 'info');
+    window.dispatchEvent(new Event('profile_updated'));
   };
 
   const handleDeleteContact = (field: 'mobile' | 'email') => {
       setContactInfo({ ...contactInfo, [field]: { value: '', privacy: 'public' } });
       setEditingContact(null);
       if (setProfileUser) setProfileUser(prev => ({ ...prev }));
+      notify(language === 'ar' ? 'تم حذف معلومات الاتصال' : 'Contact info removed', 'info');
+      window.dispatchEvent(new Event('profile_updated'));
   };
 
   const handleDeleteRelationship = () => {
       setRelationship({ status: '', privacy: 'public' });
       setEditingRelationship(false);
       if (setProfileUser) setProfileUser(prev => ({ ...prev }));
+      notify(language === 'ar' ? 'تم حذف الحالة الاجتماعية' : 'Relationship status removed', 'info');
+      window.dispatchEvent(new Event('profile_updated'));
   };
 
   const handleDeletePronunciation = () => {
       setPronunciation({ text: '', privacy: 'public' });
       setEditingPronunciation(false);
       if (setProfileUser) setProfileUser(prev => ({ ...prev }));
+      notify(language === 'ar' ? 'تم حذف طريقة النطق' : 'Pronunciation removed', 'info');
+      window.dispatchEvent(new Event('profile_updated'));
   };
 
   const handleDeleteQuotes = () => {
       setQuotes({ text: '', privacy: 'public' });
       setEditingQuotes(false);
       if (setProfileUser) setProfileUser(prev => ({ ...prev }));
+      notify(language === 'ar' ? 'تم حذف الاقتباس المفضل' : 'Favorite quote removed', 'info');
+      window.dispatchEvent(new Event('profile_updated'));
   };
 
   // Work Handlers
@@ -493,6 +505,8 @@ const ProfileAbout: React.FC<ProfileAboutProps> = ({ currentUser, readonly = fal
       setNewWork({ role: '', company: '', privacy: 'public' });
       setShowWorkForm(false);
       if (setProfileUser) setProfileUser(prev => ({ ...prev }));
+      notify(language === 'ar' ? 'تم حفظ معلومات العمل بنجاح' : 'Work info saved successfully', 'success');
+      window.dispatchEvent(new Event('profile_updated'));
     }
   };
 
@@ -513,6 +527,8 @@ const ProfileAbout: React.FC<ProfileAboutProps> = ({ currentUser, readonly = fal
       setNewUni({ name: '', degree: '', major: '', year: '', privacy: 'public' });
       setShowUniForm(false);
       if (setProfileUser) setProfileUser(prev => ({ ...prev }));
+      notify(language === 'ar' ? 'تم حفظ معلومات التعليم بنجاح' : 'University info saved successfully', 'success');
+      window.dispatchEvent(new Event('profile_updated'));
     }
   };
 
@@ -533,6 +549,8 @@ const ProfileAbout: React.FC<ProfileAboutProps> = ({ currentUser, readonly = fal
       setNewSchool({ name: '', year: '', privacy: 'public' });
       setShowSchoolForm(false);
       if (setProfileUser) setProfileUser(prev => ({ ...prev }));
+      notify(language === 'ar' ? 'تم حفظ معلومات المدرسة بنجاح' : 'School info saved successfully', 'success');
+      window.dispatchEvent(new Event('profile_updated'));
     }
   };
 
@@ -548,6 +566,8 @@ const ProfileAbout: React.FC<ProfileAboutProps> = ({ currentUser, readonly = fal
         setNewPlace({ country: '', city: '', privacy: 'public' });
         setEditingPlaceType(null);
         if (setProfileUser) setProfileUser(prev => ({ ...prev }));
+        notify(language === 'ar' ? 'تم حفظ مكان السكن بنجاح' : 'Location saved successfully', 'success');
+        window.dispatchEvent(new Event('profile_updated'));
     }
   };
 
@@ -568,6 +588,8 @@ const ProfileAbout: React.FC<ProfileAboutProps> = ({ currentUser, readonly = fal
       setNewWebsite({ url: '', privacy: 'public' });
       setShowWebsiteForm(false);
       if (setProfileUser) setProfileUser(prev => ({ ...prev }));
+      notify(language === 'ar' ? 'تم حفظ الموقع الإلكتروني بنجاح' : 'Website saved successfully', 'success');
+      window.dispatchEvent(new Event('profile_updated'));
     }
   };
 
@@ -588,6 +610,8 @@ const ProfileAbout: React.FC<ProfileAboutProps> = ({ currentUser, readonly = fal
       setNewSocial({ platform: '', url: '', privacy: 'public' });
       setShowSocialForm(false);
       if (setProfileUser) setProfileUser(prev => ({ ...prev }));
+      notify(language === 'ar' ? 'تم حفظ رابط التواصل بنجاح' : 'Social link saved successfully', 'success');
+      window.dispatchEvent(new Event('profile_updated'));
       }
   };
 
@@ -595,6 +619,8 @@ const ProfileAbout: React.FC<ProfileAboutProps> = ({ currentUser, readonly = fal
       setContactInfo({...contactInfo, [field]: { ...tempContact }});
       setEditingContact(null);
       if (setProfileUser) setProfileUser(prev => ({ ...prev }));
+      notify(language === 'ar' ? 'تم حفظ معلومات الاتصال بنجاح' : 'Contact info saved successfully', 'success');
+      window.dispatchEvent(new Event('profile_updated'));
   };
 
   const handleSaveBasic = (field: 'gender' | 'birthDate' | 'languages') => {
@@ -603,12 +629,16 @@ const ProfileAbout: React.FC<ProfileAboutProps> = ({ currentUser, readonly = fal
       if (field === 'languages') setBasicInfo({...basicInfo, languages: tempLanguages});
       setEditingBasic(null);
       if (setProfileUser) setProfileUser(prev => ({ ...prev }));
+      notify(language === 'ar' ? 'تم حفظ البيانات الأساسية بنجاح' : 'Basic info saved successfully', 'success');
+      window.dispatchEvent(new Event('profile_updated'));
   };
 
   const handleSaveRelationship = () => {
       setRelationship(tempRelationship);
       setEditingRelationship(false);
       if (setProfileUser) setProfileUser(prev => ({ ...prev }));
+      notify(language === 'ar' ? 'تم حفظ الحالة الاجتماعية بنجاح' : 'Relationship status saved successfully', 'success');
+      window.dispatchEvent(new Event('profile_updated'));
   };
 
   // Family Handlers
@@ -628,6 +658,8 @@ const ProfileAbout: React.FC<ProfileAboutProps> = ({ currentUser, readonly = fal
           setNewFamilyMember({ name: '', relation: '', privacy: 'public' });
           setShowFamilyForm(false);
           if (setProfileUser) setProfileUser(prev => ({ ...prev }));
+          notify(language === 'ar' ? 'تم حفظ فرد العائلة بنجاح' : 'Family member saved successfully', 'success');
+          window.dispatchEvent(new Event('profile_updated'));
       }
   };
 
@@ -635,12 +667,16 @@ const ProfileAbout: React.FC<ProfileAboutProps> = ({ currentUser, readonly = fal
       setBio(tempBio);
       setEditingBio(false);
       if (setProfileUser) setProfileUser(prev => ({ ...prev }));
+      notify(language === 'ar' ? 'تم حفظ السيرة الذاتية بنجاح' : 'Bio saved successfully', 'success');
+      window.dispatchEvent(new Event('profile_updated'));
   };
 
   const handleSavePronunciation = () => {
       setPronunciation({ ...pronunciation, text: tempPronunciation });
       setEditingPronunciation(false);
       if (setProfileUser) setProfileUser(prev => ({ ...prev }));
+      notify(language === 'ar' ? 'تم حفظ طريقة النطق بنجاح' : 'Pronunciation saved successfully', 'success');
+      window.dispatchEvent(new Event('profile_updated'));
   };
 
   // Other Name Handlers
@@ -660,6 +696,8 @@ const ProfileAbout: React.FC<ProfileAboutProps> = ({ currentUser, readonly = fal
           setNewOtherName({ name: '', type: 'اسم الشهرة', privacy: 'public' });
           setShowOtherNameForm(false);
           if (setProfileUser) setProfileUser(prev => ({ ...prev }));
+          notify(language === 'ar' ? 'تم حفظ الاسم بنجاح' : 'Other name saved successfully', 'success');
+          window.dispatchEvent(new Event('profile_updated'));
       }
   };
 
@@ -667,6 +705,8 @@ const ProfileAbout: React.FC<ProfileAboutProps> = ({ currentUser, readonly = fal
       setQuotes(tempQuotes);
       setEditingQuotes(false);
       if (setProfileUser) setProfileUser(prev => ({ ...prev }));
+      notify(language === 'ar' ? 'تم حفظ الاقتباس المفضل بنجاح' : 'Favorite quote saved successfully', 'success');
+      window.dispatchEvent(new Event('profile_updated'));
   };
 
   // Event Handlers
@@ -686,6 +726,8 @@ const ProfileAbout: React.FC<ProfileAboutProps> = ({ currentUser, readonly = fal
           setNewEvent({ title: '', location: '', description: '', year: '', privacy: 'public' });
           setShowEventForm(false);
           if (setProfileUser) setProfileUser(prev => ({ ...prev }));
+          notify(language === 'ar' ? 'تم حفظ المناسبة الحياتية بنجاح' : 'Life event saved successfully', 'success');
+          window.dispatchEvent(new Event('profile_updated'));
       }
   };
 
@@ -1564,7 +1606,7 @@ const ProfileAbout: React.FC<ProfileAboutProps> = ({ currentUser, readonly = fal
                                     <a href={site.url} target="_blank" rel="noreferrer" className="text-[16px] text-emerald-700 dark:text-emerald-400 hover:underline block truncate max-w-[200px] font-medium">{site.url}</a>
                                     <div className="text-xs text-emerald-700 dark:text-emerald-400 font-medium flex items-center gap-1">{t.contact_website} <span aria-hidden="true">·</span> <PrivacyIcon type={site.privacy} /></div>
                                 </div>
-                                {!readonly && <button onClick={() => handleEditWebsite(site)} className="p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full"><Pen className="w-4 h-4" /></button>}
+                                {!readonly && <button onClick={() => handleEditWebsite(site)} className="p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full transition"><Pen className="w-5 h-5" /></button>}
                             </div>
                         ))}
                         {showWebsiteForm ? (
@@ -1600,7 +1642,7 @@ const ProfileAbout: React.FC<ProfileAboutProps> = ({ currentUser, readonly = fal
                                     <a href={link.url} target="_blank" rel="noreferrer" className="text-[16px] text-emerald-700 dark:text-emerald-400 hover:underline block font-medium">{link.platform}</a>
                                     <div className="text-xs text-emerald-700 dark:text-emerald-400 font-medium flex items-center gap-1">{link.url} <span aria-hidden="true">·</span> <PrivacyIcon type={link.privacy} /></div>
                                 </div>
-                                {!readonly && <button onClick={() => handleEditSocial(link)} className="p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full"><Pen className="w-4 h-4" /></button>}
+                                {!readonly && <button onClick={() => handleEditSocial(link)} className="p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full transition"><Pen className="w-5 h-5" /></button>}
                             </div>
                         ))}
                          {showSocialForm ? (
@@ -1826,7 +1868,7 @@ const ProfileAbout: React.FC<ProfileAboutProps> = ({ currentUser, readonly = fal
                                     {!readonly && basicInfo.languages.value.length > 0 && (
                                         <button 
                                             onClick={() => { setTempLanguages(basicInfo.languages); setEditingBasic('languages'); }}
-                                            className="p-2 text-gray-500 hover:bg-gray-200 rounded-full transition"
+                                            className="p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full transition"
                                         >
                                             <Pen className="w-5 h-5" />
                                         </button>
@@ -1844,7 +1886,7 @@ const ProfileAbout: React.FC<ProfileAboutProps> = ({ currentUser, readonly = fal
               <div className="space-y-8 animate-fadeIn">
                   {/* Relationship Status Section */}
                   <div>
-                      <h4 className="font-bold text-[21px] mb-4 text-gray-900 dark:text-white">{t.about_family}</h4>
+                      <h4 className="font-bold text-[21px] mb-4 text-gray-900 dark:text-white">{t.relationship_status || (language === 'ar' ? 'الحالة الاجتماعية' : 'Relationship Status')}</h4>
                       
                       {editingRelationship ? (
                           <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg border border-gray-200 dark:border-gray-600">
@@ -2150,7 +2192,7 @@ const ProfileAbout: React.FC<ProfileAboutProps> = ({ currentUser, readonly = fal
                                             <div className="text-xs text-emerald-700 dark:text-emerald-400 font-medium flex items-center gap-1">{t.details_pronounce} <span aria-hidden="true">·</span> <PrivacyIcon type={pronunciation.privacy} /></div>
                                         </div>
                                         {/* Visible Pencil Icon for Pronunciation */}
-                                        {!readonly && <button onClick={() => { setTempPronunciation(pronunciation.text); setEditingPronunciation(true); }} className="p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full"><Pen className="w-5 h-5" /></button>}
+                                        {!readonly && <button onClick={() => { setTempPronunciation(pronunciation.text); setEditingPronunciation(true); }} className="p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full transition"><Pen className="w-5 h-5" /></button>}
                                     </div>
                                  </div>
                              ) : (
@@ -2178,7 +2220,7 @@ const ProfileAbout: React.FC<ProfileAboutProps> = ({ currentUser, readonly = fal
                                   <div className="text-[16px] text-emerald-700 dark:text-emerald-400 font-medium">{name.name}</div>
                                   <div className="text-xs text-emerald-700 dark:text-emerald-400 font-medium flex items-center gap-1">{translateItem(name.type, 'name_types')} <span aria-hidden="true">·</span> <PrivacyIcon type={name.privacy} /></div>
                               </div>
-                              {!readonly && <button onClick={() => handleEditOtherName(name)} className="p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full"><Pen className="w-4 h-4" /></button>}
+                              {!readonly && <button onClick={() => handleEditOtherName(name)} className="p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full transition"><Pen className="w-5 h-5" /></button>}
                           </div>
                       ))}
 
@@ -2264,7 +2306,7 @@ const ProfileAbout: React.FC<ProfileAboutProps> = ({ currentUser, readonly = fal
                                             </div>
                                        </div>
                                        {/* Visible Pencil Icon for Quotes */}
-                                       {!readonly && <button onClick={() => { setTempQuotes(quotes); setEditingQuotes(true); }} className="p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full"><Pen className="w-5 h-5" /></button>}
+                                       {!readonly && <button onClick={() => { setTempQuotes(quotes); setEditingQuotes(true); }} className="p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full transition"><Pen className="w-5 h-5" /></button>}
                                    </div>
                                ) : (
                                    !readonly && (
