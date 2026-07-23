@@ -1,0 +1,10 @@
+interface ImportMetaEnv {
+  readonly VITE_GOOGLE_API_KEY?: string;
+  readonly VITE_PORT?: string;
+  readonly VITE_PREVIEW_PORT?: string;
+  readonly VITE_API_URL?: string;
+}
+
+interface ImportMeta {
+  readonly env: ImportMetaEnv;
+}
