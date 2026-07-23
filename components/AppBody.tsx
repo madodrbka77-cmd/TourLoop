@@ -109,6 +109,8 @@ const AppBody: React.FC<AppBodyProps> = ({
               onDeleteComment={syncDeleteComment}
               onLikeComment={syncLikeComment}
               onUpdateAvatar={handleUpdateAvatar}
+              onProfileClick={handleProfileClick}
+              onFriendClick={handleFriendClick}
               isLoading={isGlobalLoading}
            />
          )}

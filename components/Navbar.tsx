@@ -761,63 +761,70 @@ const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onProfileClick, c
             </div>
 
             {showFriendsMenu && (
-                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-80 sm:w-96 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-100 dark:border-gray-700 z-50 overflow-hidden animate-fadeIn">
-                    <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-800/50">
-                        <h3 className="font-bold text-lg text-gray-900 dark:text-white">طلبات الصداقة</h3>
-                        <button onClick={() => { setView('friends'); setShowFriendsMenu(false); }} className="text-emerald-600 dark:text-emerald-400 text-xs font-semibold hover:underline">
-                            عرض الكل
-                        </button>
-                    </div>
-                    <div className="max-h-[400px] overflow-y-auto p-2">
-                        {/* Friend Requests */}
-                        {friendRequests.length > 0 ? (
-                            friendRequests.map(req => (
-                                <div key={req.id} className="flex items-center gap-3 p-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition mb-1">
-                                    <img src={req.avatar} alt={req.name} className="w-12 h-12 rounded-full object-cover" />
-                                    <div className="flex-1">
-                                        <div className="flex justify-between items-start">
-                                            <span className="font-bold text-sm text-gray-900 dark:text-white">{req.name}</span>
-                                            <span className="text-[10px] text-gray-500">{req.mutual} صديق مشترك</span>
-                                        </div>
-                                        <div className="flex gap-2 mt-2">
-                                            <button onClick={() => handleAcceptRequest(req.id)} className="flex-1 bg-fb-blue text-white text-xs font-bold py-1.5 rounded-md hover:bg-blue-700 transition">تأكيد</button>
-                                            <button onClick={() => handleDeleteRequest(req.id)} className="flex-1 bg-gray-200 text-gray-700 text-xs font-bold py-1.5 rounded-md hover:bg-gray-300 transition">حذف</button>
+                <>
+                    <div 
+                        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 sm:hidden animate-fadeIn" 
+                        onClick={() => setShowFriendsMenu(false)} 
+                    />
+                    <div className="fixed sm:absolute top-16 sm:top-full inset-x-2 sm:inset-x-auto sm:mt-2 left-1/2 -translate-x-1/2 max-sm:translate-x-0 max-sm:left-2 max-sm:right-2 w-auto sm:w-96 bg-white dark:bg-gray-800 rounded-2xl sm:rounded-xl shadow-2xl border border-gray-100 dark:border-gray-700 z-50 overflow-hidden animate-fadeIn max-h-[85vh] sm:max-h-none flex flex-col">
+                        <div className="w-12 h-1 bg-gray-300 dark:bg-gray-600 rounded-full mx-auto my-1.5 sm:hidden cursor-pointer" onClick={() => setShowFriendsMenu(false)} />
+                        <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-800/50">
+                            <h3 className="font-bold text-lg text-gray-900 dark:text-white">طلبات الصداقة</h3>
+                            <button onClick={() => { setView('friends'); setShowFriendsMenu(false); }} className="text-emerald-600 dark:text-emerald-400 text-xs font-semibold hover:underline">
+                                عرض الكل
+                            </button>
+                        </div>
+                        <div className="max-h-[400px] overflow-y-auto p-2">
+                            {/* Friend Requests */}
+                            {friendRequests.length > 0 ? (
+                                friendRequests.map(req => (
+                                    <div key={req.id} className="flex items-center gap-3 p-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition mb-1">
+                                        <img src={req.avatar} alt={req.name} className="w-12 h-12 rounded-full object-cover" />
+                                        <div className="flex-1">
+                                            <div className="flex justify-between items-start">
+                                                <span className="font-bold text-sm text-gray-900 dark:text-white">{req.name}</span>
+                                                <span className="text-[10px] text-gray-500">{req.mutual} صديق مشترك</span>
+                                            </div>
+                                            <div className="flex gap-2 mt-2">
+                                                <button onClick={() => handleAcceptRequest(req.id)} className="flex-1 bg-fb-blue text-white text-xs font-bold py-1.5 rounded-md hover:bg-blue-700 transition">تأكيد</button>
+                                                <button onClick={() => handleDeleteRequest(req.id)} className="flex-1 bg-gray-200 text-gray-700 text-xs font-bold py-1.5 rounded-md hover:bg-gray-300 transition">حذف</button>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            ))
-                        ) : (
-                            <div className="text-center py-4 text-gray-500 text-sm">لا توجد طلبات صداقة جديدة</div>
-                        )}
+                                ))
+                            ) : (
+                                <div className="text-center py-4 text-gray-500 text-sm">لا توجد طلبات صداقة جديدة</div>
+                            )}
 
-                        <div className="border-t border-gray-100 dark:border-gray-700 my-2"></div>
-                        <h4 className="px-2 text-xs font-bold text-gray-500 uppercase mb-2">أشخاص قد تعرفهم</h4>
-                        
-                        {/* Suggested Friends */}
-                        {suggestedFriends.map(friend => (
-                            <div key={friend.id} className="flex items-center gap-3 p-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition mb-1">
-                                <img src={friend.avatar} alt={friend.name} className="w-10 h-10 rounded-full object-cover" />
-                                <div className="flex-1 flex justify-between items-center">
-                                    <div>
-                                        <span className="font-bold text-sm text-gray-900 dark:text-white block">{friend.name}</span>
-                                        <span className="text-[10px] text-gray-500">{friend.mutual} صديق مشترك</span>
+                            <div className="border-t border-gray-100 dark:border-gray-700 my-2"></div>
+                            <h4 className="px-2 text-xs font-bold text-gray-500 uppercase mb-2">أشخاص قد تعرفهم</h4>
+                            
+                            {/* Suggested Friends */}
+                            {suggestedFriends.map(friend => (
+                                <div key={friend.id} className="flex items-center gap-3 p-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition mb-1">
+                                    <img src={friend.avatar} alt={friend.name} className="w-10 h-10 rounded-full object-cover" />
+                                    <div className="flex-1 flex justify-between items-center">
+                                        <div>
+                                            <span className="font-bold text-sm text-gray-900 dark:text-white block">{friend.name}</span>
+                                            <span className="text-[10px] text-gray-500">{friend.mutual} صديق مشترك</span>
+                                        </div>
+                                        <button onClick={() => handleAddFriend(friend.id)} className="bg-emerald-50 text-emerald-700 p-1.5 rounded-full hover:bg-emerald-100 transition">
+                                            <UserPlus className="w-5 h-5" />
+                                        </button>
                                     </div>
-                                    <button onClick={() => handleAddFriend(friend.id)} className="bg-emerald-50 text-emerald-700 p-1.5 rounded-full hover:bg-emerald-100 transition">
-                                        <UserPlus className="w-5 h-5" />
-                                    </button>
                                 </div>
-                            </div>
-                        ))}
+                            ))}
 
-                        <div className="border-t border-gray-100 dark:border-gray-700 my-2"></div>
-                        <button 
-                            onClick={() => { setView('suggestions'); setShowFriendsMenu(false); }}
-                            className="w-full text-center text-sm text-emerald-700 font-medium hover:underline py-1 flex items-center justify-center gap-1"
-                        >
-                            <UserPlus className="w-4 h-4" /> استكشاف أشخاص قد تعرفهم
-                        </button>
+                            <div className="border-t border-gray-100 dark:border-gray-700 my-2"></div>
+                            <button 
+                                onClick={() => { setView('suggestions'); setShowFriendsMenu(false); }}
+                                className="w-full text-center text-sm text-emerald-700 font-medium hover:underline py-1 flex items-center justify-center gap-1"
+                            >
+                                <UserPlus className="w-4 h-4" /> استكشاف أشخاص قد تعرفهم
+                            </button>
+                        </div>
                     </div>
-                </div>
+                </>
             )}
         </div>
 
@@ -871,55 +878,62 @@ const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onProfileClick, c
                 )}
             </div>
             {showNotifications && (
-                <div className="absolute top-full mt-3 w-80 sm:w-96 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-100 dark:border-gray-700 z-50 overflow-hidden animate-fadeIn origin-top-right ltr:right-0 rtl:left-0">
-                    <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-800/50">
-                        <h3 className="font-bold text-lg text-gray-900 dark:text-white">الإشعارات</h3>
-                        {unreadNotificationsCount > 0 && (
-                            <button onClick={handleMarkAllRead} className="text-emerald-600 dark:text-emerald-400 text-xs font-semibold hover:underline flex items-center gap-1">
-                                <CheckCircle className="w-3 h-3" /> تحديد الكل كمقروء
-                            </button>
-                        )}
-                    </div>
-                    <div className="max-h-[400px] overflow-y-auto">
-                        {notifications.length === 0 ? (
-                            <div className="p-8 text-center text-gray-500">
-                                <Bell className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                                <p>لا توجد إشعارات جديدة</p>
-                            </div>
-                        ) : (
-                            notifications.map(notification => (
-                                <div 
-                                    key={notification.id} 
-                                    onClick={() => handleNotificationClick(notification.id)}
-                                    className={`p-3 flex items-start gap-3 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition relative group ${!notification.read ? 'bg-emerald-50/50 dark:bg-emerald-900/10' : ''}`}
-                                >
-                                    <div className={`p-2.5 rounded-full flex-shrink-0 ${!notification.read ? 'bg-emerald-100 dark:bg-emerald-900 text-emerald-600' : 'bg-gray-100 dark:bg-gray-700 text-gray-500'}`}>
-                                        <Bell className="w-5 h-5" />
-                                    </div>
-                                    <div className="flex-1 pr-6">
-                                        <p className={`text-sm leading-tight mb-1 ${!notification.read ? 'font-bold text-gray-900 dark:text-white' : 'text-gray-700 dark:text-gray-300'}`}>
-                                            {notification.text}
-                                        </p>
-                                        <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">{notification.time}</span>
-                                    </div>
-                                    {!notification.read && <div className="w-2.5 h-2.5 bg-red-500 rounded-full mt-2 flex-shrink-0"></div>}
-                                    
-                                    {/* Delete Notification Button */}
-                                    <button 
-                                        onClick={(e) => handleRemoveNotification(notification.id, e)}
-                                        className="absolute top-1/2 -translate-y-1/2 left-2 p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full opacity-0 group-hover:opacity-100 transition"
-                                        title="إزالة الإشعار"
-                                    >
-                                        <Trash2 className="w-4 h-4" />
-                                    </button>
+                <>
+                    <div 
+                        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 sm:hidden animate-fadeIn" 
+                        onClick={() => setShowNotifications(false)} 
+                    />
+                    <div className="fixed sm:absolute top-16 sm:top-full inset-x-2 sm:inset-x-auto sm:mt-3 w-auto sm:w-96 bg-white dark:bg-gray-800 rounded-2xl sm:rounded-xl shadow-2xl border border-gray-100 dark:border-gray-700 z-50 overflow-hidden animate-fadeIn origin-top-right ltr:right-0 rtl:left-0 ltr:sm:right-0 rtl:sm:left-0 max-h-[85vh] sm:max-h-none flex flex-col">
+                        <div className="w-12 h-1 bg-gray-300 dark:bg-gray-600 rounded-full mx-auto my-1.5 sm:hidden cursor-pointer" onClick={() => setShowNotifications(false)} />
+                        <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-800/50">
+                            <h3 className="font-bold text-lg text-gray-900 dark:text-white">الإشعارات</h3>
+                            {unreadNotificationsCount > 0 && (
+                                <button onClick={handleMarkAllRead} className="text-emerald-600 dark:text-emerald-400 text-xs font-semibold hover:underline flex items-center gap-1">
+                                    <CheckCircle className="w-3 h-3" /> تحديد الكل كمقروء
+                                </button>
+                            )}
+                        </div>
+                        <div className="max-h-[400px] overflow-y-auto">
+                            {notifications.length === 0 ? (
+                                <div className="p-8 text-center text-gray-500">
+                                    <Bell className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                                    <p>لا توجد إشعارات جديدة</p>
                                 </div>
-                            ))
-                        )}
+                            ) : (
+                                notifications.map(notification => (
+                                    <div 
+                                        key={notification.id} 
+                                        onClick={() => handleNotificationClick(notification.id)}
+                                        className={`p-3 flex items-start gap-3 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition relative group ${!notification.read ? 'bg-emerald-50/50 dark:bg-emerald-900/10' : ''}`}
+                                    >
+                                        <div className={`p-2.5 rounded-full flex-shrink-0 ${!notification.read ? 'bg-emerald-100 dark:bg-emerald-900 text-emerald-600' : 'bg-gray-100 dark:bg-gray-700 text-gray-500'}`}>
+                                            <Bell className="w-5 h-5" />
+                                        </div>
+                                        <div className="flex-1 pr-6">
+                                            <p className={`text-sm leading-tight mb-1 ${!notification.read ? 'font-bold text-gray-900 dark:text-white' : 'text-gray-700 dark:text-gray-300'}`}>
+                                                {notification.text}
+                                            </p>
+                                            <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">{notification.time}</span>
+                                        </div>
+                                        {!notification.read && <div className="w-2.5 h-2.5 bg-red-500 rounded-full mt-2 flex-shrink-0"></div>}
+                                        
+                                        {/* Delete Notification Button */}
+                                        <button 
+                                            onClick={(e) => handleRemoveNotification(notification.id, e)}
+                                            className="absolute top-1/2 -translate-y-1/2 left-2 p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full opacity-0 group-hover:opacity-100 transition"
+                                            title="إزالة الإشعار"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                        <div className="p-2 border-t border-gray-100 dark:border-gray-700 text-center bg-gray-50 dark:bg-gray-800/50">
+                            <button onClick={handleViewAllNotifications} className="text-sm font-semibold text-emerald-600 hover:underline">عرض كل الإشعارات السابقة</button>
+                        </div>
                     </div>
-                    <div className="p-2 border-t border-gray-100 dark:border-gray-700 text-center bg-gray-50 dark:bg-gray-800/50">
-                        <button onClick={handleViewAllNotifications} className="text-sm font-semibold text-emerald-600 hover:underline">عرض كل الإشعارات السابقة</button>
-                    </div>
-                </div>
+                </>
             )}
         </div>
 
@@ -937,55 +951,62 @@ const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onProfileClick, c
                 )}
             </div>
             {showMessages && (
-                <div className="absolute top-full mt-3 w-80 sm:w-96 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-100 dark:border-gray-700 z-50 overflow-hidden animate-fadeIn origin-top-right ltr:right-0 rtl:left-0">
-                    <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-800/50">
-                        <h3 className="font-bold text-lg text-gray-900 dark:text-white">الرسائل</h3>
-                        <div className="flex gap-2">
-                            {unreadMessagesCount > 0 && (
-                                <button onClick={handleMarkAllMessagesRead} className="text-gray-500 hover:text-emerald-600 text-xs font-semibold hover:underline">
-                                    تحديد كمقروء
+                <>
+                    <div 
+                        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 sm:hidden animate-fadeIn" 
+                        onClick={() => setShowMessages(false)} 
+                    />
+                    <div className="fixed sm:absolute top-16 sm:top-full inset-x-2 sm:inset-x-auto sm:mt-3 w-auto sm:w-96 bg-white dark:bg-gray-800 rounded-2xl sm:rounded-xl shadow-2xl border border-gray-100 dark:border-gray-700 z-50 overflow-hidden animate-fadeIn origin-top-right ltr:right-0 rtl:left-0 ltr:sm:right-0 rtl:sm:left-0 max-h-[85vh] sm:max-h-none flex flex-col">
+                        <div className="w-12 h-1 bg-gray-300 dark:bg-gray-600 rounded-full mx-auto my-1.5 sm:hidden cursor-pointer" onClick={() => setShowMessages(false)} />
+                        <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-800/50">
+                            <h3 className="font-bold text-lg text-gray-900 dark:text-white">الرسائل</h3>
+                            <div className="flex gap-2">
+                                {unreadMessagesCount > 0 && (
+                                    <button onClick={handleMarkAllMessagesRead} className="text-gray-500 hover:text-emerald-600 text-xs font-semibold hover:underline">
+                                        تحديد كمقروء
+                                    </button>
+                                )}
+                                <button onClick={handleNewMessage} className="text-emerald-600 text-xs font-semibold hover:underline flex items-center gap-1">
+                                    <Plus className="w-3 h-3" /> رسالة جديدة
                                 </button>
-                            )}
-                            <button onClick={handleNewMessage} className="text-emerald-600 text-xs font-semibold hover:underline flex items-center gap-1">
-                                <Plus className="w-3 h-3" /> رسالة جديدة
-                            </button>
+                            </div>
+                        </div>
+                        <div className="max-h-[400px] overflow-y-auto">
+                            {messages.map(msg => (
+                                <div 
+                                    key={msg.id} 
+                                    className={`p-3 flex items-center gap-3 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition ${msg.unread ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''}`}
+                                    onClick={() => handleMessageClick(msg)}
+                                >
+                                    <div className="relative">
+                                        <img src={msg.avatar} alt={msg.sender} className="w-12 h-12 rounded-full object-cover border border-gray-200 dark:border-gray-700" />
+                                        <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white dark:border-gray-800 rounded-full"></div>
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex justify-between items-center mb-0.5">
+                                            <span className={`text-sm ${msg.unread ? 'font-bold text-gray-900 dark:text-white' : 'font-medium text-gray-700 dark:text-gray-300'}`}>
+                                                {msg.sender}
+                                            </span>
+                                            <span className={`text-xs ${msg.unread ? 'text-emerald-600 font-bold' : 'text-gray-400'}`}>{msg.time}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center">
+                                            <p className={`text-sm truncate max-w-[200px] ${msg.unread ? 'font-semibold text-gray-800 dark:text-gray-100' : 'text-gray-500 dark:text-gray-400'}`}>
+                                                {msg.unread ? <span className="inline-block w-2 h-2 bg-blue-500 rounded-full mr-1"></span> : null}
+                                                {msg.text}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="opacity-0 group-hover:opacity-100 transition">
+                                        <MoreHorizontal className="w-4 h-4 text-gray-400" />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                        <div className="p-2 border-t border-gray-100 dark:border-gray-700 text-center bg-gray-50 dark:bg-gray-800/50">
+                            <button onClick={handleViewAllMessages} className="text-sm font-semibold text-emerald-600 hover:underline">عرض كل الرسائل في الماسنجر</button>
                         </div>
                     </div>
-                    <div className="max-h-[400px] overflow-y-auto">
-                        {messages.map(msg => (
-                            <div 
-                                key={msg.id} 
-                                className={`p-3 flex items-center gap-3 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition ${msg.unread ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''}`}
-                                onClick={() => handleMessageClick(msg)}
-                            >
-                                <div className="relative">
-                                    <img src={msg.avatar} alt={msg.sender} className="w-12 h-12 rounded-full object-cover border border-gray-200 dark:border-gray-700" />
-                                    <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white dark:border-gray-800 rounded-full"></div>
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                    <div className="flex justify-between items-center mb-0.5">
-                                        <span className={`text-sm ${msg.unread ? 'font-bold text-gray-900 dark:text-white' : 'font-medium text-gray-700 dark:text-gray-300'}`}>
-                                            {msg.sender}
-                                        </span>
-                                        <span className={`text-xs ${msg.unread ? 'text-emerald-600 font-bold' : 'text-gray-400'}`}>{msg.time}</span>
-                                    </div>
-                                    <div className="flex justify-between items-center">
-                                        <p className={`text-sm truncate max-w-[200px] ${msg.unread ? 'font-semibold text-gray-800 dark:text-gray-100' : 'text-gray-500 dark:text-gray-400'}`}>
-                                            {msg.unread ? <span className="inline-block w-2 h-2 bg-blue-500 rounded-full mr-1"></span> : null}
-                                            {msg.text}
-                                        </p>
-                                    </div>
-                                </div>
-                                <div className="opacity-0 group-hover:opacity-100 transition">
-                                    <MoreHorizontal className="w-4 h-4 text-gray-400" />
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                    <div className="p-2 border-t border-gray-100 dark:border-gray-700 text-center bg-gray-50 dark:bg-gray-800/50">
-                        <button onClick={handleViewAllMessages} className="text-sm font-semibold text-emerald-600 hover:underline">عرض كل الرسائل في الماسنجر</button>
-                    </div>
-                </div>
+                </>
             )}
         </div>
 
@@ -1000,107 +1021,114 @@ const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onProfileClick, c
             </div>
 
             {showSettings && (
-                <div className="absolute top-full mt-3 w-80 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-100 dark:border-gray-700 z-50 overflow-hidden animate-fadeIn origin-top-right ltr:right-0 rtl:left-0">
-                    {/* MAIN SETTINGS VIEW */}
-                    {settingsView === 'main' && (
-                      <>
-                        <div className="p-4 border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
-                            <h3 className="font-bold text-lg text-gray-900 dark:text-white">الإعدادات والخصوصية</h3>
-                        </div>
-                        
-                        <div className="p-2 space-y-1">
-                            <button 
-                                onClick={() => setSettingsView('language')}
-                                className="w-full flex items-center justify-between p-3 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition group"
-                            >
-                                <div className="flex items-center gap-3">
-                                    <div className="bg-gray-200 dark:bg-gray-700 p-2 rounded-full group-hover:bg-white dark:group-hover:bg-gray-600 transition">
-                                        <Globe className="w-5 h-5 text-gray-700 dark:text-gray-200" />
+                <>
+                    <div 
+                        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 md:hidden animate-fadeIn" 
+                        onClick={() => setShowSettings(false)} 
+                    />
+                    <div className="fixed md:absolute top-16 md:top-full inset-x-2 md:inset-x-auto md:mt-3 w-auto md:w-80 bg-white dark:bg-gray-800 rounded-2xl md:rounded-xl shadow-2xl border border-gray-100 dark:border-gray-700 z-50 overflow-hidden animate-fadeIn origin-top-right ltr:right-0 rtl:left-0 ltr:md:right-0 rtl:md:left-0 max-h-[85vh] md:max-h-none flex flex-col">
+                        <div className="w-12 h-1 bg-gray-300 dark:bg-gray-600 rounded-full mx-auto my-1.5 md:hidden cursor-pointer" onClick={() => setShowSettings(false)} />
+                        {/* MAIN SETTINGS VIEW */}
+                        {settingsView === 'main' && (
+                          <>
+                            <div className="p-4 border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+                                <h3 className="font-bold text-lg text-gray-900 dark:text-white">الإعدادات والخصوصية</h3>
+                            </div>
+                            
+                            <div className="p-2 space-y-1">
+                                <button 
+                                    onClick={() => setSettingsView('language')}
+                                    className="w-full flex items-center justify-between p-3 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition group"
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <div className="bg-gray-200 dark:bg-gray-700 p-2 rounded-full group-hover:bg-white dark:group-hover:bg-gray-600 transition">
+                                            <Globe className="w-5 h-5 text-gray-700 dark:text-gray-200" />
+                                        </div>
+                                        <span className="font-medium text-gray-800 dark:text-gray-200">اللغة / Language</span>
                                     </div>
-                                    <span className="font-medium text-gray-800 dark:text-gray-200">اللغة / Language</span>
-                                </div>
-                                {dir === 'rtl' ? <ChevronLeft className="w-5 h-5 text-gray-400" /> : <ChevronRight className="w-5 h-5 text-gray-400" />}
-                            </button>
+                                    {dir === 'rtl' ? <ChevronLeft className="w-5 h-5 text-gray-400" /> : <ChevronRight className="w-5 h-5 text-gray-400" />}
+                                </button>
 
-                            <button 
-                                onClick={() => { toggleTheme(); setShowSettings(false); }}
-                                className="w-full flex items-center justify-between p-3 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition group"
-                            >
-                                <div className="flex items-center gap-3">
-                                    <div className="bg-gray-200 dark:bg-gray-700 p-2 rounded-full group-hover:bg-white dark:group-hover:bg-gray-600 transition relative overflow-hidden">
-                                        {theme === 'dark' ? 
-                                            <Sun className="w-5 h-5 text-amber-500 animate-spin-slow" /> : 
-                                            <Moon className="w-5 h-5 text-gray-700" />
-                                        }
+                                <button 
+                                    onClick={() => { toggleTheme(); setShowSettings(false); }}
+                                    className="w-full flex items-center justify-between p-3 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition group"
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <div className="bg-gray-200 dark:bg-gray-700 p-2 rounded-full group-hover:bg-white dark:group-hover:bg-gray-600 transition relative overflow-hidden">
+                                            {theme === 'dark' ? 
+                                                <Sun className="w-5 h-5 text-amber-500 animate-spin-slow" /> : 
+                                                <Moon className="w-5 h-5 text-gray-700" />
+                                            }
+                                        </div>
+                                        <div className="flex flex-col items-start">
+                                            <span className="font-medium text-gray-800 dark:text-gray-200">
+                                                {theme === 'dark' ? 'الوضع الفاتح' : 'الوضع الليلي'}
+                                            </span>
+                                            <span className="text-xs text-gray-500">تعديل مظهر التطبيق</span>
+                                        </div>
                                     </div>
+                                    {/* Toggle Switch Visual */}
+                                    <div className={`w-10 h-6 rounded-full p-1 transition-colors duration-300 ${theme === 'dark' ? 'bg-emerald-600' : 'bg-gray-300'}`}>
+                                        <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-300 ${theme === 'dark' ? 'translate-x-0' : dir === 'rtl' ? '-translate-x-4' : 'translate-x-4'}`}></div>
+                                    </div>
+                                </button>
+
+                                <div className="border-t border-gray-100 dark:border-gray-700 my-1"></div>
+
+                                <button 
+                                    onClick={onLogout}
+                                    className="w-full flex items-center justify-between p-3 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-lg transition group text-red-600 dark:text-red-400"
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <div className="bg-red-50 dark:bg-red-900/20 p-2 rounded-full group-hover:bg-white dark:group-hover:bg-gray-800 transition">
+                                            <LogOut className="w-5 h-5" />
+                                        </div>
+                                        <span className="font-medium">تسجيل الخروج</span>
+                                    </div>
+                                </button>
+                            </div>
+                          </>
+                        )}
+
+                        {/* LANGUAGE SUB-MENU */}
+                        {settingsView === 'language' && (
+                           <div className="animate-slideLeft">
+                              <div className="p-3 border-b border-gray-100 dark:border-gray-700 flex items-center gap-2 bg-gray-50 dark:bg-gray-800/50">
+                                  <button 
+                                    onClick={() => setSettingsView('main')}
+                                    className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full text-gray-600 dark:text-gray-300 transition"
+                                  >
+                                     {dir === 'rtl' ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
+                                  </button>
+                                  <h3 className="font-bold text-lg text-gray-900 dark:text-white">اللغة</h3>
+                              </div>
+                              <div className="p-2 space-y-1">
+                                 <button 
+                                    onClick={() => { setLanguage('ar'); setShowSettings(false); }}
+                                    className={`w-full flex items-center justify-between p-3 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition ${language === 'ar' ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400' : 'text-gray-700 dark:text-gray-200'}`}
+                                 >
                                     <div className="flex flex-col items-start">
-                                        <span className="font-medium text-gray-800 dark:text-gray-200">
-                                            {theme === 'dark' ? 'الوضع الفاتح' : 'الوضع الليلي'}
-                                        </span>
-                                        <span className="text-xs text-gray-500">تعديل مظهر التطبيق</span>
+                                       <span className="font-medium">العربية</span>
+                                       <span className="text-xs opacity-70">Arabic</span>
                                     </div>
-                                </div>
-                                {/* Toggle Switch Visual */}
-                                <div className={`w-10 h-6 rounded-full p-1 transition-colors duration-300 ${theme === 'dark' ? 'bg-emerald-600' : 'bg-gray-300'}`}>
-                                    <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-300 ${theme === 'dark' ? 'translate-x-0' : dir === 'rtl' ? '-translate-x-4' : 'translate-x-4'}`}></div>
-                                </div>
-                            </button>
+                                    {language === 'ar' && <Check className="w-5 h-5" />}
+                                 </button>
 
-                            <div className="border-t border-gray-100 dark:border-gray-700 my-1"></div>
-
-                            <button 
-                                onClick={onLogout}
-                                className="w-full flex items-center justify-between p-3 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-lg transition group text-red-600 dark:text-red-400"
-                            >
-                                <div className="flex items-center gap-3">
-                                    <div className="bg-red-50 dark:bg-red-900/20 p-2 rounded-full group-hover:bg-white dark:group-hover:bg-gray-800 transition">
-                                        <LogOut className="w-5 h-5" />
+                                 <button 
+                                    onClick={() => { setLanguage('en'); setShowSettings(false); }}
+                                    className={`w-full flex items-center justify-between p-3 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition ${language === 'en' ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400' : 'text-gray-700 dark:text-gray-200'}`}
+                                 >
+                                    <div className="flex flex-col items-start">
+                                       <span className="font-medium">English</span>
+                                       <span className="text-xs opacity-70">الإنجليزية</span>
                                     </div>
-                                    <span className="font-medium">تسجيل الخروج</span>
-                                </div>
-                            </button>
-                        </div>
-                      </>
-                    )}
-
-                    {/* LANGUAGE SUB-MENU */}
-                    {settingsView === 'language' && (
-                       <div className="animate-slideLeft">
-                          <div className="p-3 border-b border-gray-100 dark:border-gray-700 flex items-center gap-2 bg-gray-50 dark:bg-gray-800/50">
-                              <button 
-                                onClick={() => setSettingsView('main')}
-                                className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full text-gray-600 dark:text-gray-300 transition"
-                              >
-                                 {dir === 'rtl' ? <ChevronRight className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
-                              </button>
-                              <h3 className="font-bold text-lg text-gray-900 dark:text-white">اللغة</h3>
-                          </div>
-                          <div className="p-2 space-y-1">
-                             <button 
-                                onClick={() => { setLanguage('ar'); setShowSettings(false); }}
-                                className={`w-full flex items-center justify-between p-3 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition ${language === 'ar' ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400' : 'text-gray-700 dark:text-gray-200'}`}
-                             >
-                                <div className="flex flex-col items-start">
-                                   <span className="font-medium">العربية</span>
-                                   <span className="text-xs opacity-70">Arabic</span>
-                                </div>
-                                {language === 'ar' && <Check className="w-5 h-5" />}
-                             </button>
-
-                             <button 
-                                onClick={() => { setLanguage('en'); setShowSettings(false); }}
-                                className={`w-full flex items-center justify-between p-3 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition ${language === 'en' ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400' : 'text-gray-700 dark:text-gray-200'}`}
-                             >
-                                <div className="flex flex-col items-start">
-                                   <span className="font-medium">English</span>
-                                   <span className="text-xs opacity-70">الإنجليزية</span>
-                                </div>
-                                {language === 'en' && <Check className="w-5 h-5" />}
-                             </button>
-                          </div>
-                       </div>
-                    )}
-                </div>
+                                    {language === 'en' && <Check className="w-5 h-5" />}
+                                 </button>
+                              </div>
+                           </div>
+                        )}
+                    </div>
+                </>
             )}
         </div>
 
@@ -1122,34 +1150,86 @@ const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onProfileClick, c
 
       {/* Mobile Navigation Drawer Overlay */}
       {showMobileMenu && (
-          <div className="absolute top-16 left-0 w-full bg-white dark:bg-gray-900 shadow-xl border-t dark:border-gray-700 p-4 md:hidden animate-slideDown z-40">
-              <div className="grid grid-cols-2 gap-4">
-                  <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg flex flex-col items-center gap-2 cursor-pointer active:scale-95 transition" onClick={() => handleTabClick('home')}>
-                      <Home className="w-6 h-6 text-emerald-600" />
-                      <span className="text-sm font-medium dark:text-gray-200">{t.nav_home}</span>
+          <>
+              <div 
+                  className="fixed inset-0 top-16 bg-black/50 backdrop-blur-sm z-40 md:hidden animate-fadeIn" 
+                  onClick={() => setShowMobileMenu(false)} 
+              />
+              <div className="absolute top-16 left-0 w-full bg-white dark:bg-gray-900 shadow-xl border-t dark:border-gray-700 p-4 md:hidden animate-slideDown z-40 max-h-[85vh] overflow-y-auto">
+                  <div className="w-12 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full mx-auto mb-3 cursor-pointer" onClick={() => setShowMobileMenu(false)} />
+                  
+                  {/* Top Profile Card in Mobile Menu */}
+                  <div 
+                      className="flex items-center gap-3 p-3 mb-3 bg-emerald-50/80 dark:bg-emerald-950/40 rounded-xl border border-emerald-200/70 dark:border-emerald-800/50 cursor-pointer active:scale-98 transition shadow-sm"
+                      onClick={() => {
+                          setShowMobileMenu(false);
+                          onProfileClick();
+                      }}
+                  >
+                      <img 
+                          src={currentUser?.avatar || "https://via.placeholder.com/40"} 
+                          alt={currentUser?.name || "User"} 
+                          className="w-11 h-11 rounded-full object-cover border-2 border-emerald-600 dark:border-emerald-500 shadow-sm" 
+                      />
+                      <div className="flex flex-col">
+                          <span className="font-bold text-gray-900 dark:text-white text-base">{currentUser?.name || "المستخدم"}</span>
+                          <span className="text-xs text-emerald-700 dark:text-emerald-400 font-semibold">{language === 'ar' ? 'عرض الملف الشخصي' : 'View Profile'}</span>
+                      </div>
                   </div>
-                  <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg flex flex-col items-center gap-2 cursor-pointer active:scale-95 transition" onClick={() => handleTabClick('friends')}>
-                      <Users className="w-6 h-6 text-blue-600" />
-                      <span className="text-sm font-medium dark:text-gray-200">{t.nav_friends}</span>
-                  </div>
-                  <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg flex flex-col items-center gap-2 cursor-pointer active:scale-95 transition" onClick={() => handleTabClick('watch')}>
-                      <MonitorPlay className="w-6 h-6 text-red-600" />
-                      <span className="text-sm font-medium dark:text-gray-200">{t.nav_watch}</span>
-                  </div>
-                  <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg flex flex-col items-center gap-2 cursor-pointer active:scale-95 transition" onClick={() => handleTabClick('marketplace')}>
-                      <Store className="w-6 h-6 text-purple-600" />
-                      <span className="text-sm font-medium dark:text-gray-200">{t.nav_market}</span>
-                  </div>
-                  <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg flex flex-col items-center gap-2 cursor-pointer active:scale-95 transition" onClick={() => handleTabClick('gaming')}>
-                      <Gamepad2 className="w-6 h-6 text-orange-600" />
-                      <span className="text-sm font-medium dark:text-gray-200">{t.nav_gaming}</span>
-                  </div>
-                  <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg flex flex-col items-center gap-2 cursor-pointer active:scale-95 transition" onClick={(e) => { e.stopPropagation(); setShowSettings(!showSettings); }}>
-                      <Settings className="w-6 h-6 text-gray-600" />
-                      <span className="text-sm font-medium dark:text-gray-200">الإعدادات</span>
+
+                  {/* All Sidebar & Navigation Items Grid */}
+                  <div className="grid grid-cols-2 gap-3">
+                      <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg flex flex-col items-center gap-2 cursor-pointer active:scale-95 transition border border-gray-100 dark:border-gray-700/60" onClick={() => handleTabClick('home')}>
+                          <Home className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
+                          <span className="text-xs font-semibold dark:text-gray-200">{t.nav_home || 'الرئيسية'}</span>
+                      </div>
+                      <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg flex flex-col items-center gap-2 cursor-pointer active:scale-95 transition border border-gray-100 dark:border-gray-700/60" onClick={() => { setShowMobileMenu(false); onProfileClick(); }}>
+                          <UserCircle className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
+                          <span className="text-xs font-semibold dark:text-gray-200">{language === 'ar' ? 'الملف الشخصي' : 'Profile'}</span>
+                      </div>
+                      <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg flex flex-col items-center gap-2 cursor-pointer active:scale-95 transition border border-gray-100 dark:border-gray-700/60" onClick={() => handleTabClick('friends')}>
+                          <Users className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                          <span className="text-xs font-semibold dark:text-gray-200">{t.nav_friends || 'الأصدقاء'}</span>
+                      </div>
+                      <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg flex flex-col items-center gap-2 cursor-pointer active:scale-95 transition border border-gray-100 dark:border-gray-700/60" onClick={() => handleTabClick('saved')}>
+                          <Bookmark className="w-6 h-6 text-amber-600 dark:text-amber-400" />
+                          <span className="text-xs font-semibold dark:text-gray-200">{t.menu_saved || 'العناصر المحفوظة'}</span>
+                      </div>
+                      <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg flex flex-col items-center gap-2 cursor-pointer active:scale-95 transition border border-gray-100 dark:border-gray-700/60" onClick={() => handleTabClick('memories')}>
+                          <History className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+                          <span className="text-xs font-semibold dark:text-gray-200">{t.menu_memories || 'الذكريات'}</span>
+                      </div>
+                      <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg flex flex-col items-center gap-2 cursor-pointer active:scale-95 transition border border-gray-100 dark:border-gray-700/60" onClick={() => handleTabClick('marketplace')}>
+                          <Store className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+                          <span className="text-xs font-semibold dark:text-gray-200">{t.nav_market || 'المتجر'}</span>
+                      </div>
+                      <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg flex flex-col items-center gap-2 cursor-pointer active:scale-95 transition border border-gray-100 dark:border-gray-700/60" onClick={() => handleTabClick('gaming')}>
+                          <Gamepad2 className="w-6 h-6 text-orange-600 dark:text-orange-400" />
+                          <span className="text-xs font-semibold dark:text-gray-200">{t.nav_gaming || 'ألعاب'}</span>
+                      </div>
+                      <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg flex flex-col items-center gap-2 cursor-pointer active:scale-95 transition border border-gray-100 dark:border-gray-700/60" onClick={() => handleTabClick('groups')}>
+                          <LayoutGrid className="w-6 h-6 text-teal-600 dark:text-teal-400" />
+                          <span className="text-xs font-semibold dark:text-gray-200">{t.menu_groups || 'المجموعات'}</span>
+                      </div>
+                      <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg flex flex-col items-center gap-2 cursor-pointer active:scale-95 transition border border-gray-100 dark:border-gray-700/60" onClick={() => handleTabClick('pages')}>
+                          <Flag className="w-6 h-6 text-rose-600 dark:text-rose-400" />
+                          <span className="text-xs font-semibold dark:text-gray-200">{t.profile_pages || 'الصفحات'}</span>
+                      </div>
+                      <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg flex flex-col items-center gap-2 cursor-pointer active:scale-95 transition border border-gray-100 dark:border-gray-700/60" onClick={() => handleTabClick('events')}>
+                          <Calendar className="w-6 h-6 text-red-600 dark:text-red-400" />
+                          <span className="text-xs font-semibold dark:text-gray-200">{t.menu_events || 'المناسبات'}</span>
+                      </div>
+                      <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg flex flex-col items-center gap-2 cursor-pointer active:scale-95 transition border border-gray-100 dark:border-gray-700/60" onClick={() => handleTabClick('watch')}>
+                          <MonitorPlay className="w-6 h-6 text-cyan-600 dark:text-cyan-400" />
+                          <span className="text-xs font-semibold dark:text-gray-200">{t.nav_watch || 'فيديو'}</span>
+                      </div>
+                      <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg flex flex-col items-center gap-2 cursor-pointer active:scale-95 transition border border-gray-100 dark:border-gray-700/60" onClick={(e) => { e.stopPropagation(); setShowMobileMenu(false); setShowSettings(!showSettings); }}>
+                          <Settings className="w-6 h-6 text-gray-600 dark:text-gray-400" />
+                          <span className="text-xs font-semibold dark:text-gray-200">{language === 'ar' ? 'الإعدادات' : 'Settings'}</span>
+                      </div>
                   </div>
               </div>
-          </div>
+          </>
       )}
 
       {/* Mobile Live Search Modal Overlay */}

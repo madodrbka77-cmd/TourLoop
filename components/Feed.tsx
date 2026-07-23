@@ -25,6 +25,8 @@ interface FeedProps {
   onDeleteComment?: (postId: string, commentId: string) => void;
   onLikeComment?: (postId: string, commentId: string) => void;
   onUpdateAvatar?: (url: string) => void;
+  onProfileClick?: () => void;
+  onFriendClick?: (user: User) => void;
   isLoading?: boolean;
 }
 
@@ -91,6 +93,8 @@ const Feed: React.FC<FeedProps> = ({
     onDeleteComment,
     onLikeComment,
     onUpdateAvatar,
+    onProfileClick,
+    onFriendClick,
     isLoading = false
 }) => {
   const { t, dir } = useLanguage();
@@ -240,7 +244,7 @@ const Feed: React.FC<FeedProps> = ({
       />
 
       {/* Create Post Component */}
-      <CreatePost currentUser={currentUser} onPostCreate={onPostCreate} />
+      <CreatePost currentUser={currentUser} onPostCreate={onPostCreate} onProfileClick={onProfileClick} />
       
       {/* Post Feed */}
       <div className="space-y-4">
@@ -267,6 +271,8 @@ const Feed: React.FC<FeedProps> = ({
                     isSaved={savedPhotos.some(p => p.id === post.id)}
                     onSetProfilePicture={onUpdateAvatar}
                     onShowNotification={showNotification}
+                    onProfileClick={onProfileClick}
+                    onFriendClick={onFriendClick}
                 />
               ))
           ) : (

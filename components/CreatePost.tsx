@@ -39,6 +39,7 @@ interface CreatePostProps {
   currentUser: User;
   onPostCreate: (content: string, image?: string) => void;
   onShowNotification?: (message: string, type?: 'success' | 'info' | 'error') => void;
+  onProfileClick?: () => void;
 }
 
 // --- Types ---
@@ -52,7 +53,7 @@ const PrivacyIcon = ({ type }: { type: PrivacyLevel }) => {
     return <Lock className="w-3 h-3" />;
 };
 
-const CreatePost: React.FC<CreatePostProps> = ({ currentUser, onPostCreate, onShowNotification }) => {
+const CreatePost: React.FC<CreatePostProps> = ({ currentUser, onPostCreate, onShowNotification, onProfileClick }) => {
   const { t, language, dir } = useLanguage();
   const [content, setContent] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -282,10 +283,16 @@ const CreatePost: React.FC<CreatePostProps> = ({ currentUser, onPostCreate, onSh
             <img 
               src={currentUser.avatar} 
               alt={currentUser.name} 
-              className="h-10 w-10 rounded-full cursor-pointer hover:opacity-90 object-cover border border-gray-200 dark:border-gray-600"
+              className="h-10 w-10 rounded-full cursor-pointer hover:opacity-90 object-cover border border-gray-200 dark:border-gray-600 transition hover:scale-105"
+              onClick={onProfileClick}
             />
             <div className="flex flex-col">
-                <span className="font-bold text-gray-900 dark:text-white text-sm">{currentUser.name}</span>
+                <span 
+                  className="font-bold text-gray-900 dark:text-white text-sm cursor-pointer hover:underline"
+                  onClick={onProfileClick}
+                >
+                  {currentUser.name}
+                </span>
                 
                 {/* Privacy Selector */}
                 <div className="relative" ref={privacyRef}>

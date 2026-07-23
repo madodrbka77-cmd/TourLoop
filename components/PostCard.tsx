@@ -64,6 +64,8 @@ interface PostCardProps {
   onLikeComment?: (postId: string, commentId: string, reactionType?: string) => void;
   onSetProfilePicture?: (url: string) => void;
   onShowNotification?: (message: string, type?: 'success' | 'info' | 'error') => void;
+  onProfileClick?: () => void;
+  onFriendClick?: (user: User) => void;
   isSaved?: boolean;
 }
 
@@ -137,6 +139,8 @@ const PostCard: React.FC<PostCardProps> = ({
   onLikeComment, 
   onSetProfilePicture, 
   onShowNotification,
+  onProfileClick,
+  onFriendClick,
   isSaved: initialIsSaved = false 
 }) => {
   const { t, dir, language } = useLanguage();
@@ -483,11 +487,27 @@ const PostCard: React.FC<PostCardProps> = ({
               <img 
                  src={comment.author.avatar} 
                  alt={comment.author.name} 
-                 className={`${isNested ? 'h-7 w-7' : 'h-8 w-8'} rounded-full border border-white dark:border-gray-700 shadow-sm object-cover flex-shrink-0 mt-0.5`} 
+                 className={`${isNested ? 'h-7 w-7' : 'h-8 w-8'} rounded-full border border-white dark:border-gray-700 shadow-sm object-cover flex-shrink-0 mt-0.5 cursor-pointer hover:opacity-90 transition`} 
+                 onClick={() => {
+                   if (comment.author.id === currentUser.id) {
+                     onProfileClick?.();
+                   } else if (onFriendClick) {
+                     onFriendClick(comment.author);
+                   }
+                 }}
               />
               <div className="flex flex-col flex-1 min-w-0">
                   <div className="bg-white dark:bg-gray-800 px-3.5 py-2 rounded-2xl rounded-tr-none relative group/comment w-fit max-w-[90%] shadow-sm border border-gray-100 dark:border-gray-700">
-                      <span className="font-extrabold block text-gray-900 dark:text-white mb-0.5 text-xs hover:underline cursor-pointer text-start">
+                      <span 
+                        className="font-extrabold block text-gray-900 dark:text-white mb-0.5 text-xs hover:underline cursor-pointer text-start"
+                        onClick={() => {
+                          if (comment.author.id === currentUser.id) {
+                            onProfileClick?.();
+                          } else if (onFriendClick) {
+                            onFriendClick(comment.author);
+                          }
+                        }}
+                      >
                           {comment.author.name}
                       </span>
                       
@@ -845,12 +865,32 @@ const PostCard: React.FC<PostCardProps> = ({
 
       <div className={`p-3 md:p-4 flex items-center justify-between ${post.isPinned ? 'pt-2' : ''}`}>
         <div className="flex items-center gap-3">
-          <div className="relative">
-             <img src={post.author.avatar} alt={post.author.name} className="h-10 w-10 rounded-full border border-gray-200 cursor-pointer object-cover" />
+          <div 
+            className="relative cursor-pointer"
+            onClick={() => {
+              if (post.author.id === currentUser.id) {
+                onProfileClick?.();
+              } else if (onFriendClick) {
+                onFriendClick(post.author);
+              }
+            }}
+          >
+             <img src={post.author.avatar} alt={post.author.name} className="h-10 w-10 rounded-full border border-gray-200 object-cover hover:opacity-90 transition" />
              {post.author.online && <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border-2 border-white rounded-full"></div>}
           </div>
           <div className="flex flex-col">
-            <h4 className="font-semibold text-[15px] hover:underline cursor-pointer text-gray-900 dark:text-white">{post.author.name}</h4>
+            <h4 
+              className="font-semibold text-[15px] hover:underline cursor-pointer text-gray-900 dark:text-white"
+              onClick={() => {
+                if (post.author.id === currentUser.id) {
+                  onProfileClick?.();
+                } else if (onFriendClick) {
+                  onFriendClick(post.author);
+                }
+              }}
+            >
+              {post.author.name}
+            </h4>
             <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
               <span>{post.timestamp}</span>
               <span>·</span>
