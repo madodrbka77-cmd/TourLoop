@@ -7,6 +7,7 @@ import {
 import { User, TabType } from '../types';
 import { useLanguage } from '../context/LanguageContext';
 import { playAudio } from '../utils/audio';
+import { MediaPreviewCropModal } from './MediaPreviewCropModal';
 
 interface ProfileHeaderProps {
   currentUser: User;
@@ -70,6 +71,12 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   const [isProfileLocked, setIsProfileLocked] = useState((profileUser as any).isLocked === true);
   const [isLocking, setIsLocking] = useState(false);
 
+  // Media Preview & Crop State
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [previewType, setPreviewType] = useState<'avatar' | 'cover'>('avatar');
+  const [pendingCallback, setPendingCallback] = useState<((url: string) => void) | null>(null);
+
   const friendMenuRef = useRef<HTMLDivElement>(null);
   const moreMenuRef = useRef<HTMLDivElement>(null);
   const avatarMenuRef = useRef<HTMLDivElement>(null);
@@ -110,7 +117,11 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
       return null;
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, callback?: (url: string) => void) => {
+  const handleFileChange = (
+      e: React.ChangeEvent<HTMLInputElement>, 
+      mediaType: 'avatar' | 'cover' | 'story', 
+      callback?: (url: string) => void
+  ) => {
       const file = e.target.files?.[0];
       if (file && callback) {
           const error = validateFile(file);
@@ -123,12 +134,29 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           const reader = new FileReader();
           reader.onloadend = () => {
               if (reader.result) {
-                  callback(reader.result as string);
+                  const url = reader.result as string;
+                  if (mediaType === 'avatar' || mediaType === 'cover') {
+                      setPreviewImage(url);
+                      setPreviewType(mediaType);
+                      setPendingCallback(() => callback);
+                      setShowPreviewModal(true);
+                  } else {
+                      callback(url);
+                  }
               }
           };
           reader.readAsDataURL(file);
       }
       e.target.value = '';
+  };
+
+  const handleConfirmPreview = (processedImage: string) => {
+      if (pendingCallback) {
+          pendingCallback(processedImage);
+      }
+      setShowPreviewModal(false);
+      setPreviewImage(null);
+      setPendingCallback(null);
   };
 
   const handleAvatarClick = (e: React.MouseEvent) => {
@@ -266,9 +294,9 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   return (
     // Updated z-index to z-40 to ensure dropdowns appear ABOVE the posts section below
     <div className="bg-white dark:bg-gray-800 shadow-sm rounded-b-xl mb-4 pb-0 relative z-40 transition-colors duration-300">
-        <input type="file" ref={avatarInputRef} className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, onUpdateAvatar)} />
-        <input type="file" ref={coverInputRef} className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, onUpdateCover)} />
-        <input type="file" ref={storyInputRef} className="hidden" accept="image/*,video/mp4,video/webm,video/quicktime" onChange={(e) => handleFileChange(e, onAddStory)} />
+        <input type="file" ref={avatarInputRef} className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, 'avatar', onUpdateAvatar)} />
+        <input type="file" ref={coverInputRef} className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, 'cover', onUpdateCover)} />
+        <input type="file" ref={storyInputRef} className="hidden" accept="image/*,video/mp4,video/webm,video/quicktime" onChange={(e) => handleFileChange(e, 'story', onAddStory)} />
 
         <div 
             className="relative h-[200px] md:h-[350px] w-full rounded-b-xl overflow-hidden bg-gray-300 dark:bg-gray-700 group cursor-pointer border-b border-gray-200 dark:border-gray-700"
@@ -654,6 +682,15 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                 </div>
             </div>
         )}
+
+        {/* Instant Media Preview & Adjustment Modal */}
+        <MediaPreviewCropModal
+            isOpen={showPreviewModal}
+            imageSrc={previewImage || ''}
+            type={previewType}
+            onClose={() => { setShowPreviewModal(false); setPreviewImage(null); }}
+            onConfirm={handleConfirmPreview}
+        />
     </div>
   );
 };
