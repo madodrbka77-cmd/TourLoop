@@ -43,7 +43,9 @@ import {
   Plane,
   Lightbulb,
   Clock,
-  Search
+  Search,
+  Image as ImageIcon,
+  Camera
 } from 'lucide-react';
 import { Post, Comment, User } from '../types';
 import { useLanguage } from '../context/LanguageContext';
@@ -57,9 +59,9 @@ interface PostCardProps {
   onMediaClick?: (url: string, type: 'image' | 'video', postId: string) => void;
   onCopyLink?: (link: string) => void;
   onLike?: (postId: string, reactionType?: string) => void;
-  onComment?: (postId: string, text: string) => void;
+  onComment?: (postId: string, text: string, commentId?: string, image?: string, parentCommentId?: string) => void;
   onDeleteComment?: (postId: string, commentId: string) => void;
-  onLikeComment?: (postId: string, commentId: string) => void;
+  onLikeComment?: (postId: string, commentId: string, reactionType?: string) => void;
   onSetProfilePicture?: (url: string) => void;
   onShowNotification?: (message: string, type?: 'success' | 'info' | 'error') => void;
   isSaved?: boolean;
@@ -198,6 +200,13 @@ const PostCard: React.FC<PostCardProps> = ({
   const [recentEmojis, setRecentEmojis] = useState<string[]>([]);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
 
+  // Comment Image & Reaction State
+  const [commentImage, setCommentImage] = useState<string | null>(null);
+  const [replyImage, setReplyImage] = useState<string | null>(null);
+  const commentImageInputRef = useRef<HTMLInputElement>(null);
+  const replyImageInputRef = useRef<HTMLInputElement>(null);
+  const [activeCommentReactionId, setActiveCommentReactionId] = useState<string | null>(null);
+
   // Voice Comment State
   const [isRecording, setIsRecording] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
@@ -282,12 +291,34 @@ const PostCard: React.FC<PostCardProps> = ({
     if (onLike) onLike(post.id, reaction.name);
   };
 
+  const handleCommentImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setCommentImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleReplyImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setReplyImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleCommentSubmit = (e: React.FormEvent) => {
     e?.preventDefault();
-    if (!newComment.trim() && !isRecording) return;
+    if (!newComment.trim() && !commentImage && !isRecording) return;
 
     if (onComment) {
-        onComment(post.id, newComment.trim());
+        onComment(post.id, newComment.trim(), undefined, commentImage || undefined);
     } else {
         const commentId = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 9);
         const commentObj: Comment = {
@@ -296,11 +327,14 @@ const PostCard: React.FC<PostCardProps> = ({
           content: newComment.trim(),
           timestamp: t.date_now || (language === 'ar' ? 'الآن' : 'Just now'),
           likes: 0,
-          isLiked: false
+          isLiked: false,
+          image: commentImage || undefined,
+          replies: []
         };
         setComments(prev => [...prev, commentObj]);
     }
     setNewComment('');
+    setCommentImage(null);
     setShowEmojiPicker(false);
   };
 
@@ -385,25 +419,41 @@ const PostCard: React.FC<PostCardProps> = ({
     return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
   };
 
-  const handleInlineReplySubmit = (e: React.FormEvent) => {
+  const handleInlineReplySubmit = (e: React.FormEvent, parentCommentId: string) => {
       e.preventDefault();
-      if (!replyText.trim()) return;
+      if (!replyText.trim() && !replyImage) return;
       if (onComment) {
-          onComment(post.id, replyText);
+          onComment(post.id, replyText, undefined, replyImage || undefined, parentCommentId);
       } else {
           const commentId = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 9);
-          const commentObj: Comment = {
+          const replyObj: Comment = {
             id: commentId,
             author: currentUser,
             content: replyText,
             timestamp: t.date_now || (language === 'ar' ? 'الآن' : 'Just now'),
             likes: 0,
-            isLiked: false
+            isLiked: false,
+            image: replyImage || undefined,
+            replies: []
           };
-          setComments(prev => [...prev, commentObj]);
+          setComments(prev => {
+            const addReplyRecursive = (commentsList: Comment[]): Comment[] => {
+              return commentsList.map(c => {
+                if (c.id === parentCommentId) {
+                  return { ...c, replies: [...(c.replies || []), replyObj] };
+                }
+                if (c.replies && c.replies.length > 0) {
+                  return { ...c, replies: addReplyRecursive(c.replies) };
+                }
+                return c;
+              });
+            };
+            return addReplyRecursive(prev);
+          });
       }
       setReplyingToId(null);
       setReplyText('');
+      setReplyImage(null);
   };
 
   const handleDeleteComment = (commentId: string) => {
@@ -422,6 +472,186 @@ const PostCard: React.FC<PostCardProps> = ({
       } else {
           setComments(prev => prev.map(c => c.id === commentId ? { ...c, isLiked: !c.isLiked, likes: c.isLiked ? c.likes - 1 : c.likes + 1 } : c));
       }
+  };
+
+  const renderCommentItem = (comment: Comment, isNested = false) => {
+      const commentReactionObj = comment.reaction ? reactions.find(r => r.name === comment.reaction) : null;
+
+      return (
+        <div key={comment.id} className="flex gap-2 group flex-col animate-fadeIn">
+           <div className="flex gap-2 items-start">
+              <img 
+                 src={comment.author.avatar} 
+                 alt={comment.author.name} 
+                 className={`${isNested ? 'h-7 w-7' : 'h-8 w-8'} rounded-full border border-white dark:border-gray-700 shadow-sm object-cover flex-shrink-0 mt-0.5`} 
+              />
+              <div className="flex flex-col flex-1 min-w-0">
+                  <div className="bg-white dark:bg-gray-800 px-3.5 py-2 rounded-2xl rounded-tr-none relative group/comment w-fit max-w-[90%] shadow-sm border border-gray-100 dark:border-gray-700">
+                      <span className="font-extrabold block text-gray-900 dark:text-white mb-0.5 text-xs hover:underline cursor-pointer text-start">
+                          {comment.author.name}
+                      </span>
+                      
+                      {(comment as any).type === 'audio' && (comment as any).mediaUrl ? (
+                          <div className="flex items-center gap-2 min-w-[180px] my-1">
+                             <audio controls src={(comment as any).mediaUrl} className="h-8 w-48" />
+                          </div>
+                      ) : (
+                          <span className="text-[13.5px] text-gray-800 dark:text-gray-200 leading-relaxed text-start block whitespace-pre-wrap break-words">
+                              {comment.content}
+                          </span>
+                      )}
+
+                      {/* Attached Image inside comment */}
+                      {(comment.image || ((comment as any).mediaUrl && (comment as any).type !== 'audio')) && (
+                          <div className="mt-2 rounded-xl overflow-hidden border border-gray-100 dark:border-gray-700 max-w-xs">
+                              <img 
+                                  src={comment.image || (comment as any).mediaUrl} 
+                                  alt="Comment attachment" 
+                                  className="w-full h-auto max-h-52 object-cover cursor-pointer hover:brightness-95 transition"
+                                  onClick={() => onMediaClick && onMediaClick(comment.image || (comment as any).mediaUrl!, 'image', post.id)}
+                              />
+                          </div>
+                      )}
+
+                      {/* Reactions indicator on comment bubble */}
+                      {(comment.likes > 0 || comment.reaction) && (
+                          <div className="absolute -bottom-2 -left-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-full px-1.5 py-0.5 shadow-md flex items-center gap-1 text-[10px]">
+                              <span>{commentReactionObj ? commentReactionObj.emoji : '👍'}</span>
+                              {comment.likes > 0 && <span className="font-extrabold text-gray-600 dark:text-gray-200">{comment.likes}</span>}
+                          </div>
+                      )}
+                  </div>
+
+                  {/* Comment Actions Line */}
+                  <div className="flex gap-3.5 text-[11px] text-gray-500 dark:text-gray-400 px-2 mt-1 items-center font-bold relative">
+                      {/* Reaction Button with Popover */}
+                      <div className="relative">
+                          {activeCommentReactionId === comment.id && (
+                              <div 
+                                  className="absolute bottom-full mb-1 bg-white dark:bg-gray-700 shadow-xl rounded-full p-1.5 flex gap-1.5 z-50 border border-gray-200 dark:border-gray-600 -left-2 animate-scaleIn"
+                                  onMouseLeave={() => setActiveCommentReactionId(null)}
+                              >
+                                  {reactions.map(r => (
+                                      <button
+                                          key={r.name}
+                                          type="button"
+                                          onClick={() => {
+                                              if (onLikeComment) onLikeComment(post.id, comment.id, r.name);
+                                              setActiveCommentReactionId(null);
+                                          }}
+                                          className="hover:scale-130 transition-transform p-1 rounded-full text-lg hover:bg-gray-100 dark:hover:bg-gray-600"
+                                          title={r.label}
+                                      >
+                                          {r.emoji}
+                                      </button>
+                                  ))}
+                              </div>
+                          )}
+                          
+                          <span 
+                              className={`cursor-pointer hover:underline transition font-extrabold ${commentReactionObj ? commentReactionObj.color : comment.isLiked ? 'text-fb-blue' : ''}`}
+                              onClick={() => {
+                                  if (onLikeComment) onLikeComment(post.id, comment.id, comment.reaction || 'like');
+                              }}
+                              onMouseEnter={() => setActiveCommentReactionId(comment.id)}
+                          >
+                              {commentReactionObj ? commentReactionObj.label : comment.isLiked ? (t.post_like || (language === 'ar' ? 'أعجبني' : 'Like')) : (t.post_like || (language === 'ar' ? 'أعجبني' : 'Like'))}
+                          </span>
+                      </div>
+
+                      <span 
+                          className="font-extrabold cursor-pointer hover:underline transition"
+                          onClick={() => {
+                              if (replyingToId === comment.id) {
+                                  setReplyingToId(null);
+                              } else {
+                                  setReplyingToId(comment.id);
+                                  setReplyText(`@${comment.author.name} `);
+                              }
+                          }}
+                      >
+                          {t.post_reply || (language === 'ar' ? 'رد' : 'Reply')}
+                      </span>
+
+                      <span className="font-normal opacity-60">{comment.timestamp}</span>
+
+                      {(comment.author.id === currentUser.id || isOwner) && (
+                          <span 
+                              className="font-extrabold cursor-pointer hover:underline text-red-500 transition"
+                              onClick={() => setCommentToDeleteId(comment.id)}
+                          >
+                              {t.common_delete || (language === 'ar' ? 'حذف' : 'Delete')}
+                          </span>
+                      )}
+                  </div>
+              </div>
+           </div>
+
+           {/* Inline Reply Input Form */}
+           {replyingToId === comment.id && (
+              <div className="mr-8 md:mr-10 flex gap-2 animate-fadeIn mt-2">
+                  <img src={currentUser.avatar} className="w-7 h-7 rounded-full shadow-sm object-cover border border-gray-100 flex-shrink-0 mt-1" alt="me" />
+                  <form className="flex-1 flex flex-col gap-1.5" onSubmit={(e) => handleInlineReplySubmit(e, comment.id)}>
+                      {replyImage && (
+                          <div className="relative w-20 h-20 rounded-lg overflow-hidden border border-gray-200 shadow-sm">
+                              <img src={replyImage} alt="preview" className="w-full h-full object-cover" />
+                              <button 
+                                  type="button" 
+                                  onClick={() => setReplyImage(null)}
+                                  className="absolute top-1 right-1 bg-black/60 text-white rounded-full p-0.5 hover:bg-black"
+                              >
+                                  <X className="w-3 h-3" />
+                              </button>
+                          </div>
+                      )}
+
+                      <div className="flex items-center gap-1.5 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-full px-3 py-1.5 focus-within:ring-2 focus-within:ring-fb-blue/20 shadow-sm">
+                          <input 
+                              type="text" 
+                              className="w-full bg-transparent text-[12px] dark:text-white outline-none" 
+                              placeholder={`${t.post_reply || (language === 'ar' ? 'رد على' : 'Reply to')} ${comment.author.name}...`}
+                              value={replyText}
+                              onChange={(e) => setReplyText(e.target.value)}
+                              autoFocus
+                          />
+
+                          <input 
+                              type="file" 
+                              ref={replyImageInputRef} 
+                              accept="image/*" 
+                              className="hidden" 
+                              onChange={handleReplyImageSelect} 
+                          />
+
+                          <button 
+                              type="button" 
+                              onClick={() => replyImageInputRef.current?.click()}
+                              className="text-gray-400 hover:text-emerald-600 transition p-1"
+                              title={language === 'ar' ? 'إرفاق صورة' : 'Attach image'}
+                          >
+                              <ImageIcon className="w-4 h-4" />
+                          </button>
+
+                          <button 
+                              type="submit" 
+                              disabled={!replyText.trim() && !replyImage}
+                              className="text-fb-blue disabled:opacity-30 hover:scale-110 transition p-1"
+                          >
+                              <Send className={`w-4 h-4 ${dir === 'rtl' ? 'rotate-180' : ''}`} />
+                          </button>
+                      </div>
+                  </form>
+              </div>
+           )}
+
+           {/* Nested Replies Rendering */}
+           {comment.replies && comment.replies.length > 0 && (
+              <div className="mr-6 md:mr-9 border-r-2 border-gray-200/80 dark:border-gray-700/80 pr-2.5 mt-2 space-y-2.5">
+                  {comment.replies.map(reply => renderCommentItem(reply, true))}
+              </div>
+           )}
+        </div>
+      );
   };
 
   const handleReport = () => {
@@ -896,73 +1126,23 @@ const PostCard: React.FC<PostCardProps> = ({
 
       {showComments && (
         <div className="px-4 py-3 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/30">
-          <div className="space-y-4 mb-4 max-h-60 overflow-y-auto pr-1 no-scrollbar">
-            {comments.map((comment) => (
-              <div key={comment.id} className="flex gap-2 group flex-col animate-fadeIn">
-                 <div className="flex gap-2 items-start">
-                    <img src={comment.author.avatar} alt={comment.author.name} className="h-9 w-9 rounded-full border border-white dark:border-gray-700 shadow-sm object-cover" />
-                    <div className="flex flex-col flex-1">
-                        <div className="bg-white dark:bg-gray-800 px-3 py-2 rounded-2xl rounded-tr-none relative group/comment w-fit shadow-sm border border-gray-100 dark:border-gray-700">
-                            <span className="font-extrabold block text-gray-900 dark:text-white mb-0.5 text-xs hover:underline cursor-pointer text-start">{comment.author.name}</span>
-                            {(comment as any).type === 'audio' && (comment as any).mediaUrl ? (
-                                <div className="flex items-center gap-2 min-w-[180px] my-1">
-                                   <audio controls src={(comment as any).mediaUrl} className="h-8 w-48" />
-                                </div>
-                            ) : (
-                                <span className="text-[14px] text-gray-800 dark:text-gray-200 leading-relaxed text-start block">{comment.content}</span>
-                            )}
-                        </div>
-                        <div className="flex gap-4 text-[11px] text-gray-500 dark:text-gray-400 px-2 mt-1 items-center font-bold">
-                            <span 
-                                className={`cursor-pointer hover:underline transition ${comment.isLiked ? 'text-fb-blue' : ''}`}
-                                onClick={() => onLikeComment && onLikeComment(post.id, comment.id)}
-                            >
-                                {comment.isLiked ? (t.post_like || (language === 'ar' ? 'أعجبني' : 'Like')) : (t.post_like || (language === 'ar' ? 'أعجبني' : 'Like'))}
-                            </span>
-                            <span 
-                                className="font-extrabold cursor-pointer hover:underline transition"
-                                onClick={() => {
-                                    if (replyingToId === comment.id) {
-                                        setReplyingToId(null);
-                                    } else {
-                                        setReplyingToId(comment.id);
-                                        setReplyText(`@${comment.author.name} `);
-                                    }
-                                }}
-                            >
-                                {t.post_reply || (language === 'ar' ? 'رد' : 'Reply')}
-                            </span>
-                            <span className="font-normal opacity-60">{comment.timestamp}</span>
-                            {(comment.author.id === currentUser.id || isOwner) && (
-                                <span 
-                                    className="font-extrabold cursor-pointer hover:underline text-red-500 transition"
-                                    onClick={() => setCommentToDeleteId(comment.id)}
-                                >
-                                    {t.common_delete || (language === 'ar' ? 'حذف' : 'Delete')}
-                                </span>
-                            )}
-                        </div>
-                    </div>
-                 </div>
-                 
-                 {replyingToId === comment.id && (
-                    <div className="mr-12 flex gap-2 animate-fadeIn mt-1">
-                        <img src={currentUser.avatar} className="w-7 h-7 rounded-full shadow-sm object-cover border border-gray-100" alt="me" />
-                        <form className="flex-1" onSubmit={handleInlineReplySubmit}>
-                            <input 
-                                type="text" 
-                                className="w-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-full px-3 py-1.5 text-[11px] focus:ring-2 focus:ring-fb-blue/20 transition dark:text-white outline-none shadow-sm" 
-                                placeholder={`${t.post_reply || (language === 'ar' ? 'رد على' : 'Reply to')} ${comment.author.name}...`}
-                                value={replyText}
-                                onChange={(e) => setReplyText(e.target.value)}
-                                autoFocus
-                            />
-                        </form>
-                    </div>
-                 )}
-              </div>
-            ))}
+          <div className="space-y-4 mb-4 max-h-80 overflow-y-auto pr-1 no-scrollbar">
+            {comments.map((comment) => renderCommentItem(comment))}
           </div>
+
+          {/* Root Comment Input Preview */}
+          {commentImage && (
+              <div className="relative w-24 h-24 mb-2 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-600 shadow-md">
+                  <img src={commentImage} alt="preview" className="w-full h-full object-cover" />
+                  <button 
+                      type="button" 
+                      onClick={() => setCommentImage(null)}
+                      className="absolute top-1 right-1 bg-black/70 text-white rounded-full p-1 hover:bg-black transition"
+                  >
+                      <X className="w-3.5 h-3.5" />
+                  </button>
+              </div>
+          )}
 
           <div className="flex gap-2 items-start">
              <img src={currentUser.avatar} alt="Me" className="h-10 w-10 rounded-full border border-gray-200 dark:border-gray-700 shadow-sm object-cover" />
@@ -977,14 +1157,14 @@ const PostCard: React.FC<PostCardProps> = ({
                           <button onClick={cancelRecording} className="text-xs font-bold text-gray-500 hover:text-gray-700 dark:text-gray-400">{t.common_cancel || (language === 'ar' ? 'إلغاء' : 'Cancel')}</button>
                           <button 
                              onClick={stopRecording} 
-                             className="text-fb-blue hover:scale-110 transition-all transform active:scale-95 p-1"
+                             className="text-emerald-600 hover:text-emerald-500 hover:scale-110 transition-all transform active:scale-95 p-1"
                           >
                              <Send className={`w-6 h-6 ${dir === 'rtl' ? 'rotate-180' : ''}`} />
                           </button>
                        </div>
                     </div>
                 ) : (
-                    <form onSubmit={handleCommentSubmit} className="flex-1 bg-gray-100 dark:bg-gray-700 border border-transparent rounded-2xl flex items-center px-4 py-2.5 focus-within:ring-2 focus-within:ring-fb-blue/10 dark:focus-within:ring-fb-blue/20 transition-all shadow-inner relative">
+                    <form onSubmit={handleCommentSubmit} className="flex-1 bg-gray-100 dark:bg-gray-700 border border-transparent rounded-2xl flex items-center px-4 py-2.5 focus-within:ring-2 focus-within:ring-emerald-500/20 dark:focus-within:ring-emerald-500/30 transition-all shadow-inner relative">
                         <input
                             ref={commentInputRef}
                             type="text"
@@ -995,6 +1175,20 @@ const PostCard: React.FC<PostCardProps> = ({
                         />
                         
                         <div className="relative flex items-center gap-2">
+                            <input 
+                                type="file" 
+                                ref={commentImageInputRef} 
+                                accept="image/*" 
+                                className="hidden" 
+                                onChange={handleCommentImageSelect} 
+                            />
+                            
+                            <ImageIcon 
+                                className="w-5 h-5 text-gray-400 cursor-pointer hover:text-emerald-600 transition-colors"
+                                onClick={() => commentImageInputRef.current?.click()}
+                                title={language === 'ar' ? 'إرفاق صورة' : 'Attach image'}
+                            />
+
                             <Mic 
                                 className="w-5 h-5 text-gray-400 cursor-pointer hover:text-red-500 transition-colors"
                                 onClick={startRecording}
@@ -1097,8 +1291,8 @@ const PostCard: React.FC<PostCardProps> = ({
 
                         <button 
                             type="submit" 
-                            disabled={!newComment.trim()} 
-                            className={`text-fb-blue hover:scale-110 disabled:opacity-30 transition-all transform active:scale-95 p-1 ${dir === 'rtl' ? 'mr-2' : 'ml-2'}`}
+                            disabled={!newComment.trim() && !commentImage} 
+                            className={`text-emerald-600 hover:text-emerald-500 hover:scale-110 disabled:opacity-30 transition-all transform active:scale-95 p-1 ${dir === 'rtl' ? 'mr-2' : 'ml-2'}`}
                         >
                             <Send className={`w-6 h-6 ${dir === 'rtl' ? 'rotate-180' : ''}`} />
                         </button>
@@ -1148,8 +1342,12 @@ const PostCard: React.FC<PostCardProps> = ({
       {commentToDeleteId && (
           <div className="fixed inset-0 z-[100002] flex items-center justify-center bg-black/75 p-4 animate-fadeIn backdrop-blur-sm" onClick={() => setCommentToDeleteId(null)}>
               <div className="bg-white dark:bg-gray-800 rounded-2xl p-7 shadow-2xl w-full max-w-sm border border-gray-200 dark:border-gray-700 animate-scaleIn" onClick={e => e.stopPropagation()}>
-                  <h3 className="font-extrabold text-xl mb-3 text-gray-900 dark:text-white">{t.post_delete_confirm_title || (language === 'ar' ? 'حذف التعليق؟' : 'Delete Comment?')}</h3>
-                  <p className="text-gray-600 dark:text-gray-300 text-sm mb-8 leading-relaxed font-medium">{t.post_delete_confirm_desc || (language === 'ar' ? 'هل أنت متأكد؟' : 'Are you sure?')}</p>
+                  <h3 className="font-extrabold text-xl mb-3 text-gray-900 dark:text-white">
+                      {language === 'ar' ? 'حذف التعليق؟' : 'Delete Comment?'}
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-300 text-sm mb-8 leading-relaxed font-medium">
+                      {language === 'ar' ? 'هل أنت متأكد من حذف هذا التعليق؟' : 'Are you sure you want to delete this comment?'}
+                  </p>
                   <div className="flex justify-end gap-3">
                       <button onClick={() => setCommentToDeleteId(null)} className="px-6 py-2.5 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl text-sm font-bold transition active:scale-95">{t.common_cancel || (language === 'ar' ? 'إلغاء' : 'Cancel')}</button>
                       <button 

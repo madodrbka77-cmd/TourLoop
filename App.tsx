@@ -412,17 +412,46 @@ const AppContent: React.FC = () => {
   /* CRITICAL FIX: Modified syncComment to accept an optional existingCommentId 
      This ensures the Watch component and the Global State use the SAME ID for the same comment, 
      preventing duplication upon sync. */
-  const syncComment = (id: string, text: string, existingCommentId?: string) => {
+  const syncComment = (id: string, text: string, existingCommentId?: string, image?: string, parentCommentId?: string) => {
       playAudio('comment');
       const commentId = existingCommentId || generateId();
-      const newComment: Comment = { id: commentId, author: { ...currentUser }, content: text, timestamp: 'الآن', likes: 0 };
+      const newComment: Comment = { 
+        id: commentId, 
+        author: { ...currentUser }, 
+        content: text, 
+        timestamp: 'الآن', 
+        likes: 0,
+        image: image,
+        type: image ? 'image' : 'text',
+        replies: []
+      };
 
-      handlePostComment(id, text, commentId);
+      handlePostComment(id, text, commentId, image, parentCommentId);
+
+      const addCommentToPostList = (postsArr: Post[]) => postsArr.map(p => {
+          if (p.id !== id) return p;
+          if (parentCommentId) {
+              const addReply = (commentsArr: Comment[]): Comment[] => {
+                  return commentsArr.map(c => {
+                      if (c.id === parentCommentId) {
+                          return { ...c, replies: [...(c.replies || []), newComment] };
+                      }
+                      if (c.replies && c.replies.length > 0) {
+                          return { ...c, replies: addReply(c.replies) };
+                      }
+                      return c;
+                  });
+              };
+              return { ...p, comments: addReply(p.comments) };
+          } else {
+              return { ...p, comments: [...p.comments, newComment] };
+          }
+      });
 
       setPagePosts(prev => {
           const next = { ...prev };
           Object.keys(next).forEach(pageId => {
-              next[pageId] = next[pageId].map(p => p.id === id ? { ...p, comments: [...p.comments, newComment] } : p);
+              next[pageId] = addCommentToPostList(next[pageId]);
           });
           return next;
       });
@@ -430,7 +459,7 @@ const AppContent: React.FC = () => {
       setGroupPostsStore(prev => {
           const next = { ...prev };
           Object.keys(next).forEach(groupId => {
-              next[groupId] = next[groupId].map(p => p.id === id ? { ...p, comments: [...p.comments, newComment] } : p);
+              next[groupId] = addCommentToPostList(next[groupId]);
           });
           return next;
       });
@@ -452,16 +481,29 @@ const AppContent: React.FC = () => {
       if (isPhoto) media.handlePhotoComment(id, text, commentId);
       else if (isVideo) media.handleVideoComment(id, text, commentId);
 
-      media.setSavedPosts((prev: Post[]) => prev.map(p => p.id === id ? { ...p, comments: [...p.comments, newComment] } : p));
+      media.setSavedPosts((prev: Post[]) => addCommentToPostList(prev));
   };
 
   const syncDeleteComment = (id: string, commentId: string) => {
       handleDeletePostComment(id, commentId);
 
+      const filterCommentFromList = (commentsArr: Comment[]): Comment[] => {
+          return commentsArr
+              .filter(c => c.id !== commentId)
+              .map(c => c.replies ? { ...c, replies: filterCommentFromList(c.replies) } : c);
+      };
+
+      const updatePostsList = (postsArr: Post[]) => postsArr.map(p => {
+          if (p.id === id) {
+              return { ...p, comments: filterCommentFromList(p.comments) };
+          }
+          return p;
+      });
+
       setPagePosts(prev => {
           const next = { ...prev };
           Object.keys(next).forEach(pageId => {
-              next[pageId] = next[pageId].map(p => p.id === id ? { ...p, comments: p.comments.filter(c => c.id !== commentId) } : p);
+              next[pageId] = updatePostsList(next[pageId]);
           });
           return next;
       });
@@ -469,14 +511,14 @@ const AppContent: React.FC = () => {
       setGroupPostsStore(prev => {
           const next = { ...prev };
           Object.keys(next).forEach(groupId => {
-              next[groupId] = next[groupId].map(p => p.id === id ? { ...p, comments: p.comments.filter(c => c.id !== commentId) } : p);
+              next[groupId] = updatePostsList(next[groupId]);
           });
           return next;
       });
 
       setPageAlbums(prev => {
           const next = { ...prev };
-          const photoUpdater = (p: any) => p.id === id ? { ...p, comments: p.comments.filter((c: any) => c.id !== commentId) } : p;
+          const photoUpdater = (p: any) => p.id === id ? { ...p, comments: filterCommentFromList(p.comments) } : p;
           Object.keys(next).forEach(pageId => {
               next[pageId] = next[pageId].map(album => ({
                   ...album,
@@ -491,28 +533,46 @@ const AppContent: React.FC = () => {
       if (isPhoto) media.handleDeletePhotoComment(id, commentId);
       else if (isVideo) media.handleDeleteVideoComment(id, commentId);
 
-      media.setSavedPosts((prev: Post[]) => prev.map(p => p.id === id ? { ...p, comments: p.comments.filter(c => c.id !== commentId) } : p));
+      media.setSavedPosts((prev: Post[]) => updatePostsList(prev));
   };
 
-  const syncLikeComment = (id: string, commentId: string) => {
-      handleLikePostComment(id, commentId); 
+  const syncLikeComment = (id: string, commentId: string, reactionType?: string) => {
+      handleLikePostComment(id, commentId, reactionType); 
 
-      const updateComments = (postsArr: Post[]) => postsArr.map(p => {
+      const updateCommentsInList = (commentsArr: Comment[]): Comment[] => {
+          return commentsArr.map(c => {
+              if (c.id === commentId) {
+                  const isRemoving = c.isLiked && (!reactionType || reactionType === c.reaction);
+                  return { 
+                      ...c, 
+                      isLiked: !isRemoving, 
+                      reaction: isRemoving ? undefined : (reactionType || 'like'),
+                      likes: isRemoving ? Math.max(0, (c.likes || 1) - 1) : (c.isLiked ? c.likes : (c.likes || 0) + 1) 
+                  };
+              }
+              if (c.replies && c.replies.length > 0) {
+                  return { ...c, replies: updateCommentsInList(c.replies) };
+              }
+              return c;
+          });
+      };
+
+      const updateCommentsInPosts = (postsArr: Post[]) => postsArr.map(p => {
           if (p.id === id) {
-              return { ...p, comments: p.comments.map(c => c.id === commentId ? { ...c, isLiked: !c.isLiked, likes: (c.likes || 0) + (c.isLiked ? -1 : 1) } : c) };
+              return { ...p, comments: updateCommentsInList(p.comments) };
           }
           return p;
       });
 
       setPagePosts(prev => {
           const next = { ...prev };
-          Object.keys(next).forEach(pageId => { next[pageId] = updateComments(next[pageId]); });
+          Object.keys(next).forEach(pageId => { next[pageId] = updateCommentsInPosts(next[pageId]); });
           return next;
       });
 
       setGroupPostsStore(prev => {
           const next = { ...prev };
-          Object.keys(next).forEach(groupId => { next[groupId] = updateComments(next[groupId]); });
+          Object.keys(next).forEach(groupId => { next[groupId] = updateCommentsInPosts(next[groupId]); });
           return next;
       });
 
@@ -522,7 +582,7 @@ const AppContent: React.FC = () => {
               if (p.id !== id) return p;
               return {
                   ...p,
-                  comments: p.comments.map((c: any) => c.id === commentId ? { ...c, isLiked: !c.isLiked, likes: (c.likes || 0) + (c.isLiked ? -1 : 1) } : c)
+                  comments: updateCommentsInList(p.comments)
               };
           };
           Object.keys(next).forEach(pageId => {
@@ -539,7 +599,7 @@ const AppContent: React.FC = () => {
       if (isPhoto) media.handleLikePhotoComment(id, commentId);
       else if (isVideo) media.handleLikeVideoComment(id, commentId);
 
-      media.setSavedPosts((prev: Post[]) => updateComments(prev));
+      media.setSavedPosts((prev: Post[]) => updateCommentsInPosts(prev));
   };
 
   const syncTogglePin = (id: string) => {

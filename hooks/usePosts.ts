@@ -122,7 +122,7 @@ export const usePosts = (
     }));
   };
 
-  const handlePostComment = (postId: string, text: string, commentId?: string) => {
+  const handlePostComment = (postId: string, text: string, commentId?: string, image?: string, parentCommentId?: string) => {
     // Added: Trigger audio feedback for comments
     playAudio('comment');
 
@@ -131,37 +131,78 @@ export const usePosts = (
         author: currentUser,
         content: text,
         timestamp: 'الآن',
-        likes: 0
+        likes: 0,
+        image: image,
+        type: image ? 'image' : 'text',
+        replies: []
     };
-    setPosts(prev => prev.map(p => 
-        p.id === postId 
-            ? { ...p, comments: [...p.comments, newComment] } 
-            : p
-    ));
+
+    setPosts(prev => prev.map(p => {
+        if (p.id !== postId) return p;
+        if (parentCommentId) {
+            const addReply = (commentsArr: Comment[]): Comment[] => {
+                return commentsArr.map(c => {
+                    if (c.id === parentCommentId) {
+                        return { ...c, replies: [...(c.replies || []), newComment] };
+                    }
+                    if (c.replies && c.replies.length > 0) {
+                        return { ...c, replies: addReply(c.replies) };
+                    }
+                    return c;
+                });
+            };
+            return { ...p, comments: addReply(p.comments) };
+        } else {
+            return { ...p, comments: [...p.comments, newComment] };
+        }
+    }));
   };
 
   const handleDeletePostComment = (postId: string, commentId: string) => {
+    const filterComment = (commentsArr: Comment[]): Comment[] => {
+        return commentsArr
+            .filter(c => c.id !== commentId)
+            .map(c => c.replies ? { ...c, replies: filterComment(c.replies) } : c);
+    };
+
     setPosts(prev => prev.map(p => 
         p.id === postId 
-            ? { ...p, comments: p.comments.filter(c => c.id !== commentId) } 
+            ? { ...p, comments: filterComment(p.comments) } 
             : p
     ));
     showNotification('تم حذف التعليق', 'info');
   };
 
-  const handleLikePostComment = (postId: string, commentId: string) => {
-    // Added: Trigger audio feedback for liking comments
-    playAudio('like');
+  const handleLikePostComment = (postId: string, commentId: string, reactionType?: string) => {
+    if (reactionType) {
+        playAudio('react');
+    } else {
+        playAudio('like');
+    }
+
+    const updateComment = (commentsArr: Comment[]): Comment[] => {
+        return commentsArr.map(c => {
+            if (c.id === commentId) {
+                const isRemoving = c.isLiked && (!reactionType || reactionType === c.reaction);
+                return { 
+                    ...c, 
+                    isLiked: !isRemoving,
+                    reaction: isRemoving ? undefined : (reactionType || 'like'),
+                    likes: isRemoving ? Math.max(0, (c.likes || 1) - 1) : (c.isLiked ? c.likes : (c.likes || 0) + 1)
+                };
+            }
+            if (c.replies && c.replies.length > 0) {
+                return { ...c, replies: updateComment(c.replies) };
+            }
+            return c;
+        });
+    };
 
     setPosts(prev => prev.map(p => {
         if (p.id === postId) {
             return {
                 ...p,
-                comments: p.comments.map(c => 
-                    c.id === commentId 
-                        ? { ...c, isLiked: !c.isLiked, likes: (c.likes || 0) + (c.isLiked ? -1 : 1) } 
-                        : c
-                )
+                comments: updateComment(p.comments)
             };
         }
         return p;

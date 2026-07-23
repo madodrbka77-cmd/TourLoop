@@ -48,7 +48,7 @@ const ProfilePosts: React.FC<ProfilePostsProps> = ({
 }) => {
   return (
     <div className="flex flex-col md:flex-row gap-4 px-4 md:px-0 animate-fadeIn relative z-20">
-        <div className="w-full md:w-5/12 space-y-4">
+        <div className="w-full lg:w-[340px] md:w-4/12 space-y-4">
             <ProfileIntro 
                 currentUser={profileUser} 
                 isOwnProfile={isOwnProfile} 
@@ -57,7 +57,7 @@ const ProfilePosts: React.FC<ProfilePostsProps> = ({
             />
         </div>
 
-        <div className="w-full md:w-7/12">
+        <div className="w-full lg:flex-1 md:w-8/12">
             {isOwnProfile && <CreatePost currentUser={currentUser} onPostCreate={onPostCreate} />}
             
             {posts.length > 0 ? (

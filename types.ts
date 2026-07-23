@@ -26,6 +26,11 @@ export interface Comment {
   timestamp: string;
   likes: number;
   isLiked?: boolean;
+  reaction?: string;
+  image?: string;
+  type?: 'text' | 'audio' | 'image';
+  mediaUrl?: string;
+  replies?: Comment[];
 }
 
 export interface Post {

@@ -402,24 +402,24 @@ const CreatePost: React.FC<CreatePostProps> = ({ currentUser, onPostCreate, onSh
 
       {/* Action Buttons Bar */}
       <div className="border-t border-gray-200 dark:border-gray-700 pt-3 flex items-center justify-between flex-wrap gap-y-2">
-        <div className="flex gap-1 md:gap-2 overflow-x-auto no-scrollbar w-full md:w-auto scroll-smooth pb-1">
+        <div className="flex flex-wrap items-center gap-1 sm:gap-2 w-full pb-1">
           
           <button 
             onClick={() => setShowLiveModal(true)}
-            className="flex items-center gap-2 px-3 py-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors flex-shrink-0"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors flex-shrink-0"
             title={t.post_live_video}
           >
-            <Video className="h-6 w-6 text-red-500" />
-            <span className="text-gray-600 dark:text-gray-300 font-medium text-sm inline">{t.post_live_video}</span>
+            <Video className="h-5 w-5 text-red-500" />
+            <span className="text-gray-600 dark:text-gray-300 font-medium text-xs sm:text-sm inline">{t.post_live_video}</span>
           </button>
           
           <button 
             onClick={() => fileInputRef.current?.click()}
-            className="flex items-center gap-2 px-3 py-2 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg transition-colors flex-shrink-0"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg transition-colors flex-shrink-0"
             title={t.post_photo_video}
           >
-            <Image className="h-6 w-6 text-emerald-600" />
-            <span className="text-gray-600 dark:text-gray-300 font-medium text-sm inline">{t.post_photo_video}</span>
+            <Image className="h-5 w-5 text-emerald-600" />
+            <span className="text-gray-600 dark:text-gray-300 font-medium text-xs sm:text-sm inline">{t.post_photo_video}</span>
             <input 
               type="file" 
               ref={fileInputRef} 
@@ -431,39 +431,39 @@ const CreatePost: React.FC<CreatePostProps> = ({ currentUser, onPostCreate, onSh
 
           <button 
             onClick={() => setShowFeelingModal(true)}
-            className="flex items-center gap-2 px-3 py-2 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 rounded-lg transition-colors flex-shrink-0"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 rounded-lg transition-colors flex-shrink-0"
             title={t.post_feeling_activity}
           >
-            <Smile className="h-6 w-6 text-yellow-500" />
-            <span className="text-gray-600 dark:text-gray-300 font-medium text-sm inline">{t.post_feeling_activity}</span>
+            <Smile className="h-5 w-5 text-yellow-500" />
+            <span className="text-gray-600 dark:text-gray-300 font-medium text-xs sm:text-sm inline">{t.post_feeling_activity}</span>
           </button>
 
           <button 
             onClick={() => setShowTagModal(true)}
-            className="flex items-center gap-2 px-3 py-2 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors flex-shrink-0"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors flex-shrink-0"
             title={t.post_tag_button}
           >
-            <UserPlus className="h-6 w-6 text-blue-500" />
-            <span className="text-gray-600 dark:text-gray-300 font-medium text-sm inline">{t.post_tag_button}</span>
+            <UserPlus className="h-5 w-5 text-blue-500" />
+            <span className="text-gray-600 dark:text-gray-300 font-medium text-xs sm:text-sm inline">{t.post_tag_button}</span>
           </button>
 
           <button 
             onClick={() => setShowLocationModal(true)}
-            className="flex items-center gap-2 px-3 py-2 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded-lg transition-colors flex-shrink-0"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded-lg transition-colors flex-shrink-0"
             title={t.post_location_button}
           >
-            <MapPin className="h-6 w-6 text-orange-500" />
-            <span className="text-gray-600 dark:text-gray-300 font-medium text-sm inline">{t.post_location_button}</span>
+            <MapPin className="h-5 w-5 text-orange-500" />
+            <span className="text-gray-600 dark:text-gray-300 font-medium text-xs sm:text-sm inline">{t.post_location_button}</span>
           </button>
 
            <button 
             onClick={handleMagicPost}
             disabled={isGenerating}
-            className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors flex-shrink-0 ${isGenerating ? 'bg-purple-100 dark:bg-purple-900/40' : 'hover:bg-purple-50 dark:hover:bg-purple-900/20'}`}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-colors flex-shrink-0 ${isGenerating ? 'bg-purple-100 dark:bg-purple-900/40' : 'hover:bg-purple-50 dark:hover:bg-purple-900/20'}`}
             title={t.post_magic_ai}
           >
-            <Sparkles className={`h-6 w-6 text-purple-600 dark:text-purple-400 ${isGenerating ? 'animate-spin' : ''}`} />
-            <span className="text-purple-600 dark:text-purple-400 font-medium text-sm inline">
+            <Sparkles className={`h-5 w-5 text-purple-600 dark:text-purple-400 ${isGenerating ? 'animate-spin' : ''}`} />
+            <span className="text-purple-600 dark:text-purple-400 font-medium text-xs sm:text-sm inline">
                 {isGenerating ? t.post_ai_thinking : t.post_magic_ai}
             </span>
           </button>

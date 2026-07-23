@@ -3,7 +3,9 @@ import { createPortal } from 'react-dom';
 import { 
   Globe, Heart, Search, X, Check, Camera, Briefcase, 
   Upload, Plus, Loader2, AlertCircle, Info, MapPin, 
-  GraduationCap, Home, Clock, Pen
+  GraduationCap, Home, Clock, Pen, Link as LinkIcon,
+  Languages, Quote, Sparkles, User as UserIcon, Volume2,
+  Phone, Mail
 } from 'lucide-react';
 import { User, Photo } from '../types';
 import { useLanguage } from '../context/LanguageContext';
@@ -36,6 +38,15 @@ interface IntroDetails {
   city: string;
   hometown: string;
   relationship: string;
+  phone: string;
+  email: string;
+  website: string;
+  socialLinks: { platform: string; url: string }[];
+  languages: string[];
+  quote: string;
+  pronunciation: string;
+  otherNames: string[];
+  lifeEvent: string;
 }
 
 const ProfileIntro: React.FC<ProfileIntroProps> = ({ currentUser, isOwnProfile, photos, onTabChange }) => {
@@ -54,7 +65,16 @@ const ProfileIntro: React.FC<ProfileIntroProps> = ({ currentUser, isOwnProfile, 
     education: '',
     city: '',
     hometown: '',
-    relationship: ''
+    relationship: '',
+    phone: '',
+    email: '',
+    website: '',
+    socialLinks: [],
+    languages: [],
+    quote: '',
+    pronunciation: '',
+    otherNames: [],
+    lifeEvent: ''
   });
 
   // --- Hobbies State (Local) ---
@@ -94,7 +114,22 @@ const ProfileIntro: React.FC<ProfileIntroProps> = ({ currentUser, isOwnProfile, 
       } catch (e) { console.error("Error parsing bio", e); }
 
       // 2. Load Details
-      const newDetails: IntroDetails = { work: '', education: '', city: '', hometown: '', relationship: '' };
+      const newDetails: IntroDetails = {
+        work: '',
+        education: '',
+        city: '',
+        hometown: '',
+        relationship: '',
+        phone: '',
+        email: '',
+        website: '',
+        socialLinks: [],
+        languages: [],
+        quote: '',
+        pronunciation: '',
+        otherNames: [],
+        lifeEvent: ''
+      };
 
       try {
         // Work (Take the first one if multiple)
@@ -157,6 +192,84 @@ const ProfileIntro: React.FC<ProfileIntroProps> = ({ currentUser, isOwnProfile, 
           }
         } else {
           newDetails.relationship = getUserData(currentUser).relationship || '';
+        }
+
+        // Website
+        const savedWebsites = isOwnProfile ? localStorage.getItem('pa_websites') : null;
+        if (savedWebsites) {
+          const parsedWebsites: any[] = JSON.parse(savedWebsites);
+          if (parsedWebsites.length > 0 && parsedWebsites[0].url) {
+            newDetails.website = parsedWebsites[0].url;
+          }
+        }
+
+        // Contact (Phone & Email)
+        const savedContact = isOwnProfile ? localStorage.getItem('pa_contact') : null;
+        if (savedContact) {
+          const parsedContact: any = JSON.parse(savedContact);
+          if (parsedContact.mobile?.value) newDetails.phone = parsedContact.mobile.value;
+          if (parsedContact.email?.value) newDetails.email = parsedContact.email.value;
+        }
+        if (!newDetails.phone && getUserData(currentUser).phone) {
+          newDetails.phone = getUserData(currentUser).phone;
+        }
+        if (!newDetails.email && getUserData(currentUser).email) {
+          newDetails.email = getUserData(currentUser).email;
+        }
+
+        // Social Links
+        const savedSocials = isOwnProfile ? localStorage.getItem('pa_socials') : null;
+        if (savedSocials) {
+          const parsedSocials: any[] = JSON.parse(savedSocials);
+          if (parsedSocials.length > 0) {
+            newDetails.socialLinks = parsedSocials.map((s: any) => ({ platform: s.platform, url: s.url })).filter((s: any) => s.url);
+          }
+        }
+
+        // Languages
+        const savedBasic = isOwnProfile ? localStorage.getItem('pa_basic') : null;
+        if (savedBasic) {
+          const parsedBasic: any = JSON.parse(savedBasic);
+          if (parsedBasic.languages && Array.isArray(parsedBasic.languages.value) && parsedBasic.languages.value.length > 0) {
+            newDetails.languages = parsedBasic.languages.value;
+          }
+        }
+
+        // Quote
+        const savedQuotes = isOwnProfile ? localStorage.getItem('pa_quotes') : null;
+        if (savedQuotes) {
+          const parsedQuotes: any = JSON.parse(savedQuotes);
+          if (parsedQuotes.text) {
+            newDetails.quote = parsedQuotes.text;
+          }
+        }
+
+        // Pronunciation
+        const savedPronounce = isOwnProfile ? localStorage.getItem('pa_pronounce') : null;
+        if (savedPronounce) {
+          const parsedPronounce: any = JSON.parse(savedPronounce);
+          if (parsedPronounce.text) {
+            newDetails.pronunciation = parsedPronounce.text;
+          }
+        }
+
+        // Other Names
+        const savedOtherNames = isOwnProfile ? localStorage.getItem('pa_othernames') : null;
+        if (savedOtherNames) {
+          const parsedOtherNames: any[] = JSON.parse(savedOtherNames);
+          if (parsedOtherNames.length > 0) {
+            newDetails.otherNames = parsedOtherNames.map((n: any) => n.name).filter(Boolean);
+          }
+        }
+
+        // Life Event
+        const savedEvents = isOwnProfile ? localStorage.getItem('pa_events') : null;
+        if (savedEvents) {
+          const parsedEvents: any[] = JSON.parse(savedEvents);
+          if (parsedEvents.length > 0) {
+            const ev = parsedEvents[0];
+            newDetails.lifeEvent = `${ev.title}${ev.year ? ` (${ev.year})` : ''}`;
+          }
         }
 
       } catch (e) { 
@@ -336,47 +449,133 @@ const ProfileIntro: React.FC<ProfileIntroProps> = ({ currentUser, isOwnProfile, 
 
           <div className="border-t border-gray-100 dark:border-gray-700 my-4"></div>
 
-          {/* Intro Details List */}
+          {/* Intro Details List Organized in 4 Distinct Blocks with Dividers & Custom Colored Icons */}
           <div className="space-y-4 mb-4">
-              {introDetails.work && (
+              {/* Block 1: Work, Education, City, Hometown, Relationship, Languages */}
+              <div className="space-y-3.5">
+                  {introDetails.work && (
+                      <div className="flex items-start gap-3 text-sm text-gray-700 dark:text-gray-300">
+                          <Briefcase className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                          <span>{introDetails.work}</span>
+                      </div>
+                  )}
+                  {introDetails.education && (
+                      <div className="flex items-start gap-3 text-sm text-gray-700 dark:text-gray-300">
+                          <GraduationCap className="w-5 h-5 text-purple-600 dark:text-purple-400 mt-0.5 flex-shrink-0" />
+                          <span>{introDetails.education}</span>
+                      </div>
+                  )}
+                  {introDetails.city && (
+                      <div className="flex items-start gap-3 text-sm text-gray-700 dark:text-gray-300">
+                          <MapPin className="w-5 h-5 text-emerald-600 dark:text-emerald-400 mt-0.5 flex-shrink-0" />
+                          <span>{introDetails.city}</span>
+                      </div>
+                  )}
+                  {introDetails.hometown && (
+                      <div className="flex items-start gap-3 text-sm text-gray-700 dark:text-gray-300">
+                          <Home className="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+                          <span>{introDetails.hometown}</span>
+                      </div>
+                  )}
+                  {introDetails.relationship && (
+                      <div className="flex items-start gap-3 text-sm text-gray-700 dark:text-gray-300">
+                          <Heart className="w-5 h-5 text-rose-600 dark:text-rose-400 mt-0.5 flex-shrink-0 fill-rose-100 dark:fill-rose-950/40" />
+                          <span>{introDetails.relationship}</span>
+                      </div>
+                  )}
+                  {introDetails.languages.length > 0 && (
+                      <div className="flex items-start gap-3 text-sm text-gray-700 dark:text-gray-300">
+                          <Languages className="w-5 h-5 text-teal-600 dark:text-teal-400 mt-0.5 flex-shrink-0" />
+                          <span>{language === 'ar' ? 'يتحدث ' : 'Speaks '}{introDetails.languages.join('، ')}</span>
+                      </div>
+                  )}
+              </div>
+
+              {/* Divider 1 */}
+              <div className="border-t border-gray-100 dark:border-gray-700/80 my-3"></div>
+
+              {/* Block 2: Phone, Email, Website, Social Links */}
+              <div className="space-y-3.5">
+                  {introDetails.phone && (
+                      <div className="flex items-start gap-3 text-sm text-gray-700 dark:text-gray-300">
+                          <Phone className="w-5 h-5 text-green-600 dark:text-green-400 mt-0.5 flex-shrink-0" />
+                          <span dir="ltr" className="font-medium text-gray-800 dark:text-gray-200">{introDetails.phone}</span>
+                      </div>
+                  )}
+                  {introDetails.email && (
+                      <div className="flex items-start gap-3 text-sm text-gray-700 dark:text-gray-300">
+                          <Mail className="w-5 h-5 text-sky-600 dark:text-sky-400 mt-0.5 flex-shrink-0" />
+                          <span className="font-medium text-gray-800 dark:text-gray-200">{introDetails.email}</span>
+                      </div>
+                  )}
+                  {introDetails.website && (
+                      <div className="flex items-start gap-3 text-sm text-gray-700 dark:text-gray-300">
+                          <Globe className="w-5 h-5 text-indigo-600 dark:text-indigo-400 mt-0.5 flex-shrink-0" />
+                          <a href={introDetails.website.startsWith('http') ? introDetails.website : `https://${introDetails.website}`} target="_blank" rel="noopener noreferrer" className="text-emerald-700 dark:text-emerald-400 hover:underline font-medium truncate">
+                            {introDetails.website}
+                          </a>
+                      </div>
+                  )}
+                  {introDetails.socialLinks.length > 0 && (
+                      <div className="flex items-start gap-3 text-sm text-gray-700 dark:text-gray-300">
+                          <LinkIcon className="w-5 h-5 text-cyan-600 dark:text-cyan-400 mt-0.5 flex-shrink-0" />
+                          <div className="flex flex-wrap items-center gap-1.5">
+                              {introDetails.socialLinks.map((s, idx) => (
+                                  <a key={idx} href={s.url.startsWith('http') ? s.url : `https://${s.url}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gray-100 dark:bg-gray-700/80 hover:bg-emerald-50 dark:hover:bg-gray-600 text-xs font-medium text-emerald-800 dark:text-emerald-300 rounded-full transition border border-gray-200/60 dark:border-gray-600">
+                                      <span>{s.platform || s.url}</span>
+                                  </a>
+                              ))}
+                          </div>
+                      </div>
+                  )}
+              </div>
+
+              {/* Divider 2 */}
+              <div className="border-t border-gray-100 dark:border-gray-700/80 my-3"></div>
+
+              {/* Block 3: Quote, Pronunciation, Nicknames */}
+              <div className="space-y-3.5">
+                  {introDetails.quote && (
+                      <div className="flex items-start gap-3 text-sm text-gray-700 dark:text-gray-300">
+                          <Quote className="w-5 h-5 text-amber-500 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+                          <span className="italic font-medium text-amber-900 dark:text-amber-200">"{introDetails.quote}"</span>
+                      </div>
+                  )}
+                  {introDetails.pronunciation && (
+                      <div className="flex items-start gap-3 text-sm text-gray-700 dark:text-gray-300">
+                          <Volume2 className="w-5 h-5 text-pink-600 dark:text-pink-400 mt-0.5 flex-shrink-0" />
+                          <span>{language === 'ar' ? 'نطق الاسم: ' : 'Pronunciation: '}<span className="font-semibold text-emerald-700 dark:text-emerald-400">"{introDetails.pronunciation}"</span></span>
+                      </div>
+                  )}
+                  {introDetails.otherNames.length > 0 && (
+                      <div className="flex items-start gap-3 text-sm text-gray-700 dark:text-gray-300">
+                          <UserIcon className="w-5 h-5 text-violet-600 dark:text-violet-400 mt-0.5 flex-shrink-0" />
+                          <span>{language === 'ar' ? 'معروف أيضاً بـ: ' : 'Also known as: '}{introDetails.otherNames.join('، ')}</span>
+                      </div>
+                  )}
+              </div>
+
+              {/* Divider 3 */}
+              <div className="border-t border-gray-100 dark:border-gray-700/80 my-3"></div>
+
+              {/* Block 4: Events & Join Date */}
+              <div className="space-y-3.5">
+                  {introDetails.lifeEvent && (
+                      <div className="flex items-start gap-3 text-sm text-gray-700 dark:text-gray-300">
+                          <Sparkles className="w-5 h-5 text-yellow-500 dark:text-yellow-400 mt-0.5 flex-shrink-0" />
+                          <span>{introDetails.lifeEvent}</span>
+                      </div>
+                  )}
                   <div className="flex items-start gap-3 text-sm text-gray-700 dark:text-gray-300">
-                      <Briefcase className="w-5 h-5 text-gray-400 mt-0.5" />
-                      <span>{introDetails.work}</span>
+                      <Clock className="w-5 h-5 text-slate-500 dark:text-slate-400 mt-0.5 flex-shrink-0" />
+                      <span>{getJoinDate()}</span>
                   </div>
-              )}
-              {introDetails.education && (
-                  <div className="flex items-start gap-3 text-sm text-gray-700 dark:text-gray-300">
-                      <GraduationCap className="w-5 h-5 text-gray-400 mt-0.5" />
-                      <span>{introDetails.education}</span>
-                  </div>
-              )}
-              {introDetails.city && (
-                  <div className="flex items-start gap-3 text-sm text-gray-700 dark:text-gray-300">
-                      <MapPin className="w-5 h-5 text-gray-400 mt-0.5" />
-                      <span>{introDetails.city}</span>
-                  </div>
-              )}
-              {introDetails.hometown && (
-                  <div className="flex items-start gap-3 text-sm text-gray-700 dark:text-gray-300">
-                      <Home className="w-5 h-5 text-gray-400 mt-0.5" />
-                      <span>{introDetails.hometown}</span>
-                  </div>
-              )}
-              {introDetails.relationship && (
-                  <div className="flex items-start gap-3 text-sm text-gray-700 dark:text-gray-300">
-                      <Heart className="w-5 h-5 text-gray-400 mt-0.5" />
-                      <span>{introDetails.relationship}</span>
-                  </div>
-              )}
-              <div className="flex items-start gap-3 text-sm text-gray-700 dark:text-gray-300">
-                  <Clock className="w-5 h-5 text-gray-400 mt-0.5" />
-                  <span>{getJoinDate()}</span>
               </div>
 
               {isOwnProfile && (
                   <button 
                     onClick={handleEditDetails}
-                    className="w-full bg-emerald-700 text-white py-2.5 rounded-md font-semibold text-sm hover:bg-blue-700 text-white rounded transition shadow-sm"
+                    className="w-full bg-emerald-700 text-white py-2.5 rounded-md font-semibold text-sm hover:bg-blue-700 text-white rounded transition shadow-sm mt-2"
                   >
                       {t.profile_edit_details}
                   </button>
