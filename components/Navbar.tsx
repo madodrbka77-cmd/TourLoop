@@ -5,7 +5,7 @@ import {
   Globe, ChevronRight, ChevronLeft, Check, Menu, X, ShoppingBag, 
   Gamepad, TrendingUp, History, Trash2, Plus, CheckCircle, Mail,
   MoreHorizontal, Loader2, Edit3, UserPlus, MapPin, UserCheck,
-  Bookmark, LayoutGrid, Calendar, Flag
+  Bookmark, LayoutGrid, Calendar, Flag, FileText
 } from 'lucide-react';
 import { View, User } from '../types';
 import { useLanguage } from '../context/LanguageContext';
@@ -58,6 +58,34 @@ const INITIAL_SUGGESTED_FRIENDS = [
     { id: 'sf2', name: 'عادل إمام', avatar: 'https://picsum.photos/40/40?random=204', mutual: 15 }
 ];
 
+// Live Search Datasets for instant filtering across Friends, Posts, and Pages
+const LIVE_SEARCH_FRIENDS = [
+  { id: 'u1', name: 'أحمد علي', subtitle: 'صديق • نشط الآن', avatar: 'https://www.w3schools.com/howto/img_avatar.png', type: 'user' },
+  { id: 'u2', name: 'محمد علي', subtitle: 'صديق مشترك (14)', avatar: 'https://picsum.photos/40/40?random=101', type: 'user' },
+  { id: 'u3', name: 'سارة أحمد', subtitle: 'طلب صداقة معلق', avatar: 'https://picsum.photos/40/40?random=102', type: 'user' },
+  { id: 'u4', name: 'كريم محمود', subtitle: 'مطور برمجيات • القاهرة', avatar: 'https://picsum.photos/40/40?random=103', type: 'user' },
+  { id: 'u5', name: 'منى زكي', subtitle: 'مصممة جرافيك • دبي', avatar: 'https://picsum.photos/40/40?random=104', type: 'user' },
+  { id: 'u6', name: 'خالد عمر', subtitle: 'صديق مشترك (8)', avatar: 'https://picsum.photos/40/40?random=105', type: 'user' },
+  { id: 'u7', name: 'ياسمين صبري', subtitle: 'فن وتصميم', avatar: 'https://picsum.photos/40/40?random=201', type: 'user' },
+  { id: 'u8', name: 'أحمد حلمي', subtitle: 'صديق مشترك (30)', avatar: 'https://picsum.photos/40/40?random=203', type: 'user' }
+];
+
+const LIVE_SEARCH_POSTS = [
+  { id: 'p1', title: 'كان يوماً رائعاً في الرحلة الجبلية! 🏔️✨', author: 'أحمد علي', time: 'منذ عام', category: 'منشور', type: 'post' },
+  { id: 'p2', title: 'أول كود برمجي لي يعمل بنجاح! 💻🚀 شعور لا يوصف.', author: 'أحمد علي', time: 'منذ عامين', category: 'منشور', type: 'post' },
+  { id: 'p3', title: 'دليل شامل في تطوير ويب باستخدام React JS و Tailwind CSS', author: 'عالم التقنية', time: 'منذ يومين', category: 'مقالة', type: 'post' },
+  { id: 'p4', title: 'وظائف برمجة جديدة وفرص عمل عن بُعد لمطوري الواجهات Front-end', author: 'وظائف التقنية', time: 'منذ 5 ساعات', category: 'وظيفة', type: 'post' },
+  { id: 'p5', title: 'أحدث اتجاهات تصميم واجهات المستخدم وتجربة المستخدم UX/UI', author: 'منى زكي', time: 'منذ 3 أيام', category: 'تصميم', type: 'post' }
+];
+
+const LIVE_SEARCH_PAGES = [
+  { id: 'pg1', name: 'ناشيونال جيوغرافيك', category: 'علوم وطبيعة • 50M متابع', avatar: 'https://picsum.photos/100/100?random=301', type: 'page' },
+  { id: 'pg2', name: 'نادي ليفربول', category: 'رياضة • 42M متابع', avatar: 'https://picsum.photos/100/100?random=302', type: 'page' },
+  { id: 'pg3', name: 'مجتمع عشاق البرمجة', category: 'مجموعة • 45 ألف عضو', avatar: 'https://picsum.photos/100/100?random=303', type: 'group' },
+  { id: 'pg4', name: 'عالم التقنية والذكاء الاصطناعي', category: 'صفحة تقنية • 120 ألف متابع', avatar: 'https://picsum.photos/100/100?random=304', type: 'page' },
+  { id: 'pg5', name: 'مطوري React & Web العرب', category: 'مجموعة تعليمية • 28 ألف عضو', avatar: 'https://picsum.photos/100/100?random=305', type: 'group' }
+];
+
 /* Fix: Destructured onProfileClick from props */
 const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onProfileClick, currentUser, onOpenChat, onLogout }) => {
   const [activeTab, setActiveTab] = useState<View>(currentView);
@@ -70,6 +98,8 @@ const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onProfileClick, c
   const [recentSearches, setRecentSearches] = useState(INITIAL_RECENT_SEARCHES);
   const [showSearchHistory, setShowSearchHistory] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
+  const [searchFilterCategory, setSearchFilterCategory] = useState<'all' | 'people' | 'posts' | 'pages' | 'groups'>('all');
+  const [showMobileSearchModal, setShowMobileSearchModal] = useState(false);
 
   // Notifications
   const [notifications, setNotifications] = useState(INITIAL_NOTIFICATIONS);
@@ -151,6 +181,57 @@ const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onProfileClick, c
     searchInputRef.current?.focus();
   };
 
+  // Live Search Filtering Helper
+  const getFilteredSearchResults = () => {
+    const q = searchText.trim().toLowerCase();
+    if (!q) return { people: [], posts: [], pages: [], groups: [], total: 0 };
+
+    const people = LIVE_SEARCH_FRIENDS.filter(
+      f => f.name.toLowerCase().includes(q) || f.subtitle.toLowerCase().includes(q)
+    );
+    const posts = LIVE_SEARCH_POSTS.filter(
+      p => p.title.toLowerCase().includes(q) || p.author.toLowerCase().includes(q) || p.category.toLowerCase().includes(q)
+    );
+    const allPagesAndGroups = LIVE_SEARCH_PAGES.filter(
+      pg => pg.name.toLowerCase().includes(q) || pg.category.toLowerCase().includes(q)
+    );
+    const pages = allPagesAndGroups.filter(item => item.type === 'page');
+    const groups = allPagesAndGroups.filter(item => item.type === 'group');
+
+    return {
+      people,
+      posts,
+      pages,
+      groups,
+      total: people.length + posts.length + pages.length + groups.length
+    };
+  };
+
+  const handleSelectSearchResult = (term: string, actionType?: 'user' | 'post' | 'page' | 'group', itemData?: any) => {
+    if (term && !recentSearches.includes(term)) {
+      setRecentSearches(prev => [term, ...prev].slice(0, 8));
+    }
+    setShowSearchHistory(false);
+    setShowMobileSearchModal(false);
+
+    if (actionType === 'user') {
+      if (onOpenChat && itemData) {
+        onOpenChat({
+          id: itemData.id,
+          name: itemData.name,
+          avatar: itemData.avatar,
+          online: true
+        });
+      } else {
+        onProfileClick();
+      }
+    } else if (actionType === 'post') {
+      setView('home');
+    } else if (actionType === 'page' || actionType === 'group') {
+      setView('pages');
+    }
+  };
+
   const handleSearchSubmit = (e?: React.KeyboardEvent) => {
     if (e && e.key !== 'Enter') return;
     if (!searchText.trim()) return;
@@ -160,13 +241,11 @@ const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onProfileClick, c
     setTimeout(() => {
         setIsSearching(false);
         setShowSearchHistory(false);
-        // Add to history if unique
+        setShowMobileSearchModal(false);
         if (!recentSearches.includes(searchText)) {
             setRecentSearches(prev => [searchText, ...prev].slice(0, 8));
         }
-        // Navigate to a search results view (mock)
-        console.log(`Searching for: ${searchText}`);
-    }, 800);
+    }, 400);
   };
 
   const handleHistoryClick = (term: string) => {
@@ -373,7 +452,7 @@ const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onProfileClick, c
         </div>
         
         <div className="relative hidden md:block" ref={searchRef}>
-            <div className={`flex items-center bg-gray-100 dark:bg-gray-800 rounded-full px-4 py-2.5 w-64 lg:w-72 transition-all duration-300 focus-within:w-80 focus-within:shadow-md focus-within:ring-2 focus-within:ring-emerald-500/20 ${isSearching ? 'opacity-70' : ''}`}>
+            <div className={`flex items-center bg-gray-100 dark:bg-gray-800 rounded-full px-4 py-2.5 w-64 lg:w-72 transition-all duration-300 focus-within:w-96 focus-within:lg:w-[440px] focus-within:shadow-md focus-within:ring-2 focus-within:ring-emerald-500/20 ${isSearching ? 'opacity-70' : ''}`}>
                 {isSearching ? (
                     <Loader2 className="h-5 w-5 text-emerald-600 animate-spin flex-shrink-0" />
                 ) : (
@@ -401,49 +480,256 @@ const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onProfileClick, c
                 )}
             </div>
 
-            {/* Advanced Search Dropdown */}
+            {/* Advanced Live Search Dropdown */}
             {showSearchHistory && (
-                <div className="absolute top-full mt-2 w-80 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden animate-fadeIn z-50">
-                    <div className="p-3 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-800/50">
-                        <span className="text-xs font-bold text-gray-500 uppercase">
-                            {recentSearches.length > 0 ? 'عمليات البحث الأخيرة' : 'لا توجد عمليات بحث حديثة'}
-                        </span>
-                        {recentSearches.length > 0 && (
-                            <button 
-                                onClick={handleClearAllHistory}
-                                className="text-xs text-blue-500 hover:underline font-medium"
-                            >
-                                تعديل
-                            </button>
-                        )}
-                    </div>
-                    <ul>
-                        {recentSearches.map((term, index) => (
-                            <li 
-                                key={index} 
-                                onClick={() => handleHistoryClick(term)}
-                                className="flex items-center justify-between p-3 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition text-sm text-gray-700 dark:text-gray-200 group"
-                            >
-                                <div className="flex items-center gap-3">
-                                    <div className="bg-gray-100 dark:bg-gray-700 p-2 rounded-full text-gray-500 dark:text-gray-400">
-                                        <History className="w-4 h-4" />
-                                    </div>
-                                    <span>{term}</span>
-                                </div>
-                                <button 
-                                    onClick={(e) => handleRemoveHistoryItem(term, e)}
-                                    className="text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition p-1 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-full"
+                <div className="absolute top-full mt-2 w-96 sm:w-[480px] lg:w-[520px] max-w-[92vw] bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-100 dark:border-gray-700 overflow-hidden animate-fadeIn z-50 ltr:left-0 rtl:right-0">
+                    {!searchText.trim() ? (
+                        <>
+                            <div className="p-3 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-800/50">
+                                <span className="text-xs font-bold text-gray-500 uppercase">
+                                    {recentSearches.length > 0 ? 'عمليات البحث الأخيرة' : 'لا توجد عمليات بحث حديثة'}
+                                </span>
+                                {recentSearches.length > 0 && (
+                                    <button 
+                                        onClick={handleClearAllHistory}
+                                        className="text-xs text-blue-500 hover:underline font-medium"
+                                    >
+                                        تعديل
+                                    </button>
+                                )}
+                            </div>
+                            <ul>
+                                {recentSearches.map((term, index) => (
+                                    <li 
+                                        key={index} 
+                                        onClick={() => handleHistoryClick(term)}
+                                        className="flex items-center justify-between p-3 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition text-sm text-gray-700 dark:text-gray-200 group"
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <div className="bg-gray-100 dark:bg-gray-700 p-2 rounded-full text-gray-500 dark:text-gray-400">
+                                                <History className="w-4 h-4" />
+                                            </div>
+                                            <span>{term}</span>
+                                        </div>
+                                        <button 
+                                            onClick={(e) => handleRemoveHistoryItem(term, e)}
+                                            className="text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition p-1 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-full"
+                                        >
+                                            <X className="w-4 h-4" />
+                                        </button>
+                                    </li>
+                                ))}
+                            </ul>
+                        </>
+                    ) : (
+                        <div>
+                            {/* Category Filter Pills */}
+                            <div className="p-2 border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/80 flex gap-1.5 overflow-x-auto no-scrollbar">
+                                <button
+                                    onClick={() => setSearchFilterCategory('all')}
+                                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition whitespace-nowrap ${
+                                        searchFilterCategory === 'all'
+                                            ? 'bg-emerald-600 hover:bg-blue-600 text-white shadow-sm'
+                                            : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200'
+                                    }`}
                                 >
-                                    <X className="w-4 h-4" />
+                                    الكل ({getFilteredSearchResults().total})
                                 </button>
-                            </li>
-                        ))}
-                    </ul>
+                                <button
+                                    onClick={() => setSearchFilterCategory('people')}
+                                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition whitespace-nowrap ${
+                                        searchFilterCategory === 'people'
+                                            ? 'bg-emerald-600 hover:bg-blue-600 text-white shadow-sm'
+                                            : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200'
+                                    }`}
+                                >
+                                    الأشخاص ({getFilteredSearchResults().people.length})
+                                </button>
+                                <button
+                                    onClick={() => setSearchFilterCategory('posts')}
+                                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition whitespace-nowrap ${
+                                        searchFilterCategory === 'posts'
+                                            ? 'bg-emerald-600 hover:bg-blue-600 text-white shadow-sm'
+                                            : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200'
+                                    }`}
+                                >
+                                    المنشورات ({getFilteredSearchResults().posts.length})
+                                </button>
+                                <button
+                                    onClick={() => setSearchFilterCategory('pages')}
+                                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition whitespace-nowrap ${
+                                        searchFilterCategory === 'pages'
+                                            ? 'bg-emerald-600 hover:bg-blue-600 text-white shadow-sm'
+                                            : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200'
+                                    }`}
+                                >
+                                    الصفحات ({getFilteredSearchResults().pages.length})
+                                </button>
+                                <button
+                                    onClick={() => setSearchFilterCategory('groups')}
+                                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition whitespace-nowrap ${
+                                        searchFilterCategory === 'groups'
+                                            ? 'bg-emerald-600 hover:bg-blue-600 text-white shadow-sm'
+                                            : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200'
+                                    }`}
+                                >
+                                    المجموعات ({getFilteredSearchResults().groups.length})
+                                </button>
+                            </div>
+
+                            {/* Live Search Results List */}
+                            <div className="max-h-80 overflow-y-auto p-2 space-y-3">
+                                {getFilteredSearchResults().total === 0 ? (
+                                    <div className="p-6 text-center text-gray-500 dark:text-gray-400">
+                                        <Search className="w-8 h-8 mx-auto mb-2 opacity-40 text-gray-400" />
+                                        <p className="text-xs">لا توجد نتائج مطابقة لـ "{searchText}"</p>
+                                    </div>
+                                ) : (
+                                    <>
+                                        {/* People / Friends Results */}
+                                        {(searchFilterCategory === 'all' || searchFilterCategory === 'people') && getFilteredSearchResults().people.length > 0 && (
+                                            <div>
+                                                <div className="text-[11px] font-bold text-gray-400 uppercase px-2 mb-1 flex items-center gap-1">
+                                                    <Users className="w-3.5 h-3.5 text-emerald-600" />
+                                                    <span>الأشخاص والأصدقاء</span>
+                                                </div>
+                                                <div className="space-y-1">
+                                                    {getFilteredSearchResults().people.map(person => (
+                                                        <div
+                                                            key={person.id}
+                                                            onClick={() => handleSelectSearchResult(person.name, 'user', person)}
+                                                            className="flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-gray-700/60 rounded-xl cursor-pointer transition"
+                                                        >
+                                                            <div className="flex items-center gap-2.5">
+                                                                <img src={person.avatar} alt={person.name} className="w-9 h-9 rounded-full object-cover border border-gray-100 dark:border-gray-700" />
+                                                                <div>
+                                                                    <div className="font-bold text-xs text-gray-900 dark:text-white">{person.name}</div>
+                                                                    <div className="text-[10px] text-gray-500 dark:text-gray-400">{person.subtitle}</div>
+                                                                </div>
+                                                            </div>
+                                                            <button 
+                                                                onClick={(e) => { e.stopPropagation(); handleSelectSearchResult(person.name, 'user', person); }}
+                                                                className="bg-emerald-600 hover:bg-blue-600 text-white text-[11px] font-semibold px-2.5 py-1 rounded-lg transition-colors duration-200"
+                                                            >
+                                                                عرض
+                                                            </button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Posts Results */}
+                                        {(searchFilterCategory === 'all' || searchFilterCategory === 'posts') && getFilteredSearchResults().posts.length > 0 && (
+                                            <div>
+                                                <div className="text-[11px] font-bold text-gray-400 uppercase px-2 mb-1 flex items-center gap-1">
+                                                    <FileText className="w-3.5 h-3.5 text-blue-500" />
+                                                    <span>المنشورات والمقالات</span>
+                                                </div>
+                                                <div className="space-y-1">
+                                                    {getFilteredSearchResults().posts.map(post => (
+                                                        <div
+                                                            key={post.id}
+                                                            onClick={() => handleSelectSearchResult(post.title, 'post', post)}
+                                                            className="p-2 hover:bg-gray-50 dark:hover:bg-gray-700/60 rounded-xl cursor-pointer transition"
+                                                        >
+                                                            <div className="font-semibold text-xs text-gray-900 dark:text-white line-clamp-1">{post.title}</div>
+                                                            <div className="text-[10px] text-gray-500 dark:text-gray-400 flex items-center gap-2 mt-0.5">
+                                                                <span>بواسطة {post.author}</span>
+                                                                <span>•</span>
+                                                                <span>{post.time}</span>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Pages Results */}
+                                        {(searchFilterCategory === 'all' || searchFilterCategory === 'pages') && getFilteredSearchResults().pages.length > 0 && (
+                                            <div>
+                                                <div className="text-[11px] font-bold text-gray-400 uppercase px-2 mb-1 flex items-center gap-1">
+                                                    <Flag className="w-3.5 h-3.5 text-purple-500" />
+                                                    <span>الصفحات</span>
+                                                </div>
+                                                <div className="space-y-1">
+                                                    {getFilteredSearchResults().pages.map(page => (
+                                                        <div
+                                                            key={page.id}
+                                                            onClick={() => handleSelectSearchResult(page.name, 'page', page)}
+                                                            className="flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-gray-700/60 rounded-xl cursor-pointer transition"
+                                                        >
+                                                            <div className="flex items-center gap-2.5">
+                                                                <img src={page.avatar} alt={page.name} className="w-9 h-9 rounded-lg object-cover border border-gray-100 dark:border-gray-700" />
+                                                                <div>
+                                                                    <div className="font-bold text-xs text-gray-900 dark:text-white">{page.name}</div>
+                                                                    <div className="text-[10px] text-gray-500 dark:text-gray-400">{page.category}</div>
+                                                                </div>
+                                                            </div>
+                                                            <span className="text-[10px] font-bold text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/30 px-2 py-0.5 rounded-full">
+                                                                صفحة
+                                                            </span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Groups Results */}
+                                        {(searchFilterCategory === 'all' || searchFilterCategory === 'groups') && getFilteredSearchResults().groups.length > 0 && (
+                                            <div>
+                                                <div className="text-[11px] font-bold text-gray-400 uppercase px-2 mb-1 flex items-center gap-1">
+                                                    <LayoutGrid className="w-3.5 h-3.5 text-indigo-500" />
+                                                    <span>المجموعات</span>
+                                                </div>
+                                                <div className="space-y-1">
+                                                    {getFilteredSearchResults().groups.map(group => (
+                                                        <div
+                                                            key={group.id}
+                                                            onClick={() => handleSelectSearchResult(group.name, 'group', group)}
+                                                            className="flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-gray-700/60 rounded-xl cursor-pointer transition"
+                                                        >
+                                                            <div className="flex items-center gap-2.5">
+                                                                <img src={group.avatar} alt={group.name} className="w-9 h-9 rounded-lg object-cover border border-gray-100 dark:border-gray-700" />
+                                                                <div>
+                                                                    <div className="font-bold text-xs text-gray-900 dark:text-white">{group.name}</div>
+                                                                    <div className="text-[10px] text-gray-500 dark:text-gray-400">{group.category}</div>
+                                                                </div>
+                                                            </div>
+                                                            <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 px-2 py-0.5 rounded-full">
+                                                                مجموعة
+                                                            </span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </>
+                                )}
+                            </div>
+
+                            {/* View All Button Footer */}
+                            <div className="p-2 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/80">
+                                <button
+                                    onClick={() => handleSelectSearchResult(searchText)}
+                                    className="w-full bg-emerald-600 hover:bg-blue-600 text-white font-bold py-2 px-3 rounded-xl text-xs transition-colors duration-200 flex items-center justify-center gap-1.5 shadow-sm"
+                                >
+                                    <Search className="w-3.5 h-3.5" />
+                                    <span>عرض جميع نتائج البحث عن "{searchText}"</span>
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
         </div>
 
-        <div className="md:hidden bg-gray-100 dark:bg-gray-800 p-2.5 rounded-full cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 transition">
+        {/* Mobile Search Toggle Icon */}
+        <div 
+            onClick={() => setShowMobileSearchModal(true)}
+            className="md:hidden bg-gray-100 dark:bg-gray-800 p-2.5 rounded-full cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 transition"
+            title="البحث المباشر"
+        >
             <Search className="h-5 w-5 text-gray-600 dark:text-gray-300" />
         </div>
       </div>
@@ -864,6 +1150,216 @@ const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onProfileClick, c
                   </div>
               </div>
           </div>
+      )}
+
+      {/* Mobile Live Search Modal Overlay */}
+      {showMobileSearchModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 md:hidden flex flex-col justify-start animate-fadeIn">
+          <div className="bg-white dark:bg-gray-900 p-4 shadow-xl border-b border-gray-200 dark:border-gray-800 flex items-center gap-3">
+            <button 
+              onClick={() => setShowMobileSearchModal(false)}
+              className="p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition"
+            >
+              {dir === 'rtl' ? <ChevronRight className="w-6 h-6" /> : <ChevronLeft className="w-6 h-6" />}
+            </button>
+            <div className="flex-1 flex items-center bg-gray-100 dark:bg-gray-800 rounded-full px-4 py-2">
+              <Search className="h-5 w-5 text-gray-500 dark:text-gray-400 flex-shrink-0" />
+              <input
+                type="text"
+                autoFocus
+                placeholder={t.search_placeholder}
+                className="bg-transparent border-none outline-none text-sm w-full px-2 text-gray-900 dark:text-white placeholder-gray-500"
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                onKeyDown={(e) => handleSearchSubmit(e)}
+              />
+              {searchText && (
+                <button onClick={() => setSearchText('')} className="p-1 text-gray-500 hover:text-gray-700">
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="flex-1 bg-white dark:bg-gray-900 overflow-y-auto p-4">
+            {!searchText.trim() ? (
+              <div>
+                <div className="text-xs font-bold text-gray-500 uppercase mb-3">البحث الأخير</div>
+                <div className="space-y-1">
+                  {recentSearches.map((term, index) => (
+                    <div 
+                      key={index} 
+                      onClick={() => { setSearchText(term); handleHistoryClick(term); }}
+                      className="flex items-center justify-between p-3 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl cursor-pointer"
+                    >
+                      <div className="flex items-center gap-3">
+                        <History className="w-4 h-4 text-gray-400" />
+                        <span className="text-sm text-gray-800 dark:text-gray-200">{term}</span>
+                      </div>
+                      <button onClick={(e) => handleRemoveHistoryItem(term, e)} className="text-gray-400 hover:text-red-500">
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div>
+                {/* Filter Pills */}
+                <div className="flex gap-2 overflow-x-auto pb-3 mb-3 border-b border-gray-100 dark:border-gray-800">
+                  <button
+                    onClick={() => setSearchFilterCategory('all')}
+                    className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-colors duration-200 ${
+                      searchFilterCategory === 'all'
+                        ? 'bg-emerald-600 hover:bg-blue-600 text-white'
+                        : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300'
+                    }`}
+                  >
+                    الكل ({getFilteredSearchResults().total})
+                  </button>
+                  <button
+                    onClick={() => setSearchFilterCategory('people')}
+                    className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-colors duration-200 ${
+                      searchFilterCategory === 'people'
+                        ? 'bg-emerald-600 hover:bg-blue-600 text-white'
+                        : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300'
+                    }`}
+                  >
+                    الأشخاص ({getFilteredSearchResults().people.length})
+                  </button>
+                  <button
+                    onClick={() => setSearchFilterCategory('posts')}
+                    className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-colors duration-200 ${
+                      searchFilterCategory === 'posts'
+                        ? 'bg-emerald-600 hover:bg-blue-600 text-white'
+                        : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300'
+                    }`}
+                  >
+                    المنشورات ({getFilteredSearchResults().posts.length})
+                  </button>
+                  <button
+                    onClick={() => setSearchFilterCategory('pages')}
+                    className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-colors duration-200 ${
+                      searchFilterCategory === 'pages'
+                        ? 'bg-emerald-600 hover:bg-blue-600 text-white'
+                        : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300'
+                    }`}
+                  >
+                    الصفحات ({getFilteredSearchResults().pages.length})
+                  </button>
+                  <button
+                    onClick={() => setSearchFilterCategory('groups')}
+                    className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-colors duration-200 ${
+                      searchFilterCategory === 'groups'
+                        ? 'bg-emerald-600 hover:bg-blue-600 text-white'
+                        : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300'
+                    }`}
+                  >
+                    المجموعات ({getFilteredSearchResults().groups.length})
+                  </button>
+                </div>
+
+                {/* Results */}
+                {getFilteredSearchResults().total === 0 ? (
+                  <div className="p-8 text-center text-gray-500">
+                    <Search className="w-10 h-10 mx-auto mb-2 opacity-40" />
+                    <p className="text-sm">لا توجد نتائج مطابقة لـ "{searchText}"</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {(searchFilterCategory === 'all' || searchFilterCategory === 'people') && getFilteredSearchResults().people.length > 0 && (
+                      <div>
+                        <div className="text-xs font-bold text-gray-400 uppercase mb-2">الأشخاص والأصدقاء</div>
+                        {getFilteredSearchResults().people.map(person => (
+                          <div 
+                            key={person.id}
+                            onClick={() => handleSelectSearchResult(person.name, 'user', person)}
+                            className="flex items-center justify-between p-2.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl cursor-pointer"
+                          >
+                            <div className="flex items-center gap-3">
+                              <img src={person.avatar} alt={person.name} className="w-10 h-10 rounded-full object-cover" />
+                              <div>
+                                <div className="font-bold text-sm text-gray-900 dark:text-white">{person.name}</div>
+                                <div className="text-xs text-gray-500">{person.subtitle}</div>
+                              </div>
+                            </div>
+                            <button className="bg-emerald-600 hover:bg-blue-600 text-white text-xs font-semibold px-3 py-1 rounded-lg transition-colors duration-200">
+                              عرض
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {(searchFilterCategory === 'all' || searchFilterCategory === 'posts') && getFilteredSearchResults().posts.length > 0 && (
+                      <div>
+                        <div className="text-xs font-bold text-gray-400 uppercase mb-2">المنشورات والمقالات</div>
+                        {getFilteredSearchResults().posts.map(post => (
+                          <div 
+                            key={post.id}
+                            onClick={() => handleSelectSearchResult(post.title, 'post', post)}
+                            className="p-3 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl cursor-pointer"
+                          >
+                            <div className="font-semibold text-sm text-gray-900 dark:text-white">{post.title}</div>
+                            <div className="text-xs text-gray-500 mt-1">{post.author} • {post.time}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {(searchFilterCategory === 'all' || searchFilterCategory === 'pages') && getFilteredSearchResults().pages.length > 0 && (
+                      <div>
+                        <div className="text-xs font-bold text-gray-400 uppercase mb-2">الصفحات</div>
+                        {getFilteredSearchResults().pages.map(page => (
+                          <div 
+                            key={page.id}
+                            onClick={() => handleSelectSearchResult(page.name, 'page', page)}
+                            className="flex items-center justify-between p-2.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl cursor-pointer"
+                          >
+                            <div className="flex items-center gap-3">
+                              <img src={page.avatar} alt={page.name} className="w-10 h-10 rounded-lg object-cover" />
+                              <div>
+                                <div className="font-bold text-sm text-gray-900 dark:text-white">{page.name}</div>
+                                <div className="text-xs text-gray-500">{page.category}</div>
+                              </div>
+                            </div>
+                            <span className="text-xs font-bold text-purple-600 bg-purple-50 dark:bg-purple-900/30 px-2 py-0.5 rounded-full">
+                              صفحة
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {(searchFilterCategory === 'all' || searchFilterCategory === 'groups') && getFilteredSearchResults().groups.length > 0 && (
+                      <div>
+                        <div className="text-xs font-bold text-gray-400 uppercase mb-2">المجموعات</div>
+                        {getFilteredSearchResults().groups.map(group => (
+                          <div 
+                            key={group.id}
+                            onClick={() => handleSelectSearchResult(group.name, 'group', group)}
+                            className="flex items-center justify-between p-2.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl cursor-pointer"
+                          >
+                            <div className="flex items-center gap-3">
+                              <img src={group.avatar} alt={group.name} className="w-10 h-10 rounded-lg object-cover" />
+                              <div>
+                                <div className="font-bold text-sm text-gray-900 dark:text-white">{group.name}</div>
+                                <div className="text-xs text-gray-500">{group.category}</div>
+                              </div>
+                            </div>
+                            <span className="text-xs font-bold text-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 px-2 py-0.5 rounded-full">
+                              مجموعة
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );
