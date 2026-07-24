@@ -33,6 +33,21 @@ export interface Comment {
   replies?: Comment[];
 }
 
+export interface PollOption {
+  id: string;
+  text: string;
+  votes: number;
+  voters?: string[];
+}
+
+export interface Poll {
+  id: string;
+  question: string;
+  options: PollOption[];
+  totalVotes: number;
+  userVotedOptionId?: string;
+}
+
 export interface Post {
   id: string;
   author: User;
@@ -46,6 +61,7 @@ export interface Post {
   reaction?: string; // 'like' | 'love' | 'haha' | 'wow' | 'sad' | 'angry'
   isPinned?: boolean;
   isSaved?: boolean;
+  poll?: Poll;
 }
 
 export interface Story {

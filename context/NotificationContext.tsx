@@ -1,7 +1,8 @@
 
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { CheckCircle, AlertCircle, Info, AlertTriangle, X } from 'lucide-react';
+import { sendWebPushNotification, requestWebPushPermission, getWebPushPermission, isWebPushSupported } from '../utils/webPush';
 
 // --- Types ---
 export type NotificationType = 'success' | 'error' | 'info' | 'warning';
@@ -14,7 +15,10 @@ interface Notification {
 }
 
 interface NotificationContextType {
-  notify: (message: string, type?: NotificationType, duration?: number) => void;
+  notify: (message: string, type?: NotificationType, duration?: number, pushTitle?: string) => void;
+  notifyPush: (title: string, body: string, icon?: string) => void;
+  pushPermission: NotificationPermission;
+  requestPushPermission: () => Promise<NotificationPermission>;
 }
 
 // --- Context ---
@@ -23,14 +27,34 @@ const NotificationContext = createContext<NotificationContextType | undefined>(u
 // --- Provider Component ---
 export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [pushPermission, setPushPermission] = useState<NotificationPermission>('default');
+
+  useEffect(() => {
+    setPushPermission(getWebPushPermission());
+  }, []);
+
+  const requestPushPermissionHandler = useCallback(async () => {
+    const perm = await requestWebPushPermission();
+    setPushPermission(perm);
+    return perm;
+  }, []);
 
   const removeNotification = useCallback((id: string) => {
     setNotifications((prev) => prev.filter((n) => n.id !== id));
   }, []);
 
-  const notify = useCallback((message: string, type: NotificationType = 'success', duration: number = 4000) => {
+  const notifyPush = useCallback((title: string, body: string, icon?: string) => {
+    sendWebPushNotification(title, { body, icon });
+  }, []);
+
+  const notify = useCallback((message: string, type: NotificationType = 'success', duration: number = 4000, pushTitle?: string) => {
     const id = Math.random().toString(36).substr(2, 9);
     setNotifications((prev) => [...prev, { id, message, type, duration }]);
+
+    // Trigger Web Push Notification if title specified or for info type
+    if (pushTitle || type === 'info') {
+      sendWebPushNotification(pushTitle || 'تنبيه جديد', { body: message });
+    }
 
     setTimeout(() => {
       removeNotification(id);
@@ -38,7 +62,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   }, [removeNotification]);
 
   return (
-    <NotificationContext.Provider value={{ notify }}>
+    <NotificationContext.Provider value={{ notify, notifyPush, pushPermission, requestPushPermission: requestPushPermissionHandler }}>
       {children}
       {/* Portal to render notifications at the top level of DOM */}
       {typeof document !== 'undefined' && createPortal(
@@ -53,13 +77,25 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   );
 };
 
-// --- Custom Hook ---
+// --- Custom Hooks ---
 export const useNotify = () => {
   const context = useContext(NotificationContext);
   if (!context) {
     throw new Error('useNotify must be used within a NotificationProvider');
   }
   return context.notify;
+};
+
+export const usePushNotification = () => {
+  const context = useContext(NotificationContext);
+  if (!context) {
+    throw new Error('usePushNotification must be used within a NotificationProvider');
+  }
+  return {
+    notifyPush: context.notifyPush,
+    pushPermission: context.pushPermission,
+    requestPushPermission: context.requestPushPermission,
+  };
 };
 
 // --- Toast UI Component ---

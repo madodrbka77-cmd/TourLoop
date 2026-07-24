@@ -11,6 +11,7 @@ import {
 import { User } from '../types';
 import { useLanguage } from '../context/LanguageContext';
 import { playAudio } from '../utils/audio';
+import { sendWebPushNotification } from '../utils/webPush';
 
 // --- Interfaces ---
 
@@ -269,6 +270,7 @@ const AudioPlayer = ({ src, sender }: { src: string, sender: 'me' | 'them' }) =>
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [playbackSpeed, setPlaybackSpeed] = useState<1 | 1.5 | 2>(1);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -295,6 +297,16 @@ const AudioPlayer = ({ src, sender }: { src: string, sender: 'me' | 'them' }) =>
     else audioRef.current.play();
     setIsPlaying(!isPlaying);
   };
+
+  const toggleSpeed = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const speeds: (1 | 1.5 | 2)[] = [1, 1.5, 2];
+    const nextSpeed = speeds[(speeds.indexOf(playbackSpeed) + 1) % speeds.length];
+    setPlaybackSpeed(nextSpeed);
+    if (audioRef.current) {
+      audioRef.current.playbackRate = nextSpeed;
+    }
+  };
   
   const formatTime = (t: number) => {
     if (!t) return "0:00";
@@ -308,12 +320,12 @@ const AudioPlayer = ({ src, sender }: { src: string, sender: 'me' | 'them' }) =>
   const trackClass = sender === 'me' ? 'bg-white/30' : 'bg-gray-300 dark:bg-gray-600';
 
   return (
-    <div className="flex items-center gap-2 min-w-[200px] p-1">
+    <div className="flex items-center gap-1.5 min-w-[165px] max-w-[200px] py-0.5 px-0.5">
         <audio ref={audioRef} src={src} className="hidden" preload="metadata" />
-        <button onClick={togglePlay} className={`p-2 rounded-full transition ${btnClass}`}>
-            {isPlaying ? <Pause className={`w-4 h-4 fill-current ${textClass}`} /> : <Play className={`w-4 h-4 fill-current ${textClass}`} />}
+        <button onClick={togglePlay} className={`p-1.5 rounded-full transition flex-shrink-0 ${btnClass}`}>
+            {isPlaying ? <Pause className={`w-3.5 h-3.5 fill-current ${textClass}`} /> : <Play className={`w-3.5 h-3.5 fill-current ${textClass}`} />}
         </button>
-        <div className="flex-1 flex flex-col justify-center gap-1">
+        <div className="flex-1 flex flex-col justify-center gap-0.5 min-w-0">
             <input 
               type="range" 
               min="0" 
@@ -327,11 +339,18 @@ const AudioPlayer = ({ src, sender }: { src: string, sender: 'me' | 'them' }) =>
               }}
               className={`w-full h-1 rounded-lg appearance-none cursor-pointer ${trackClass}`}
             />
-            <div className={`flex justify-between text-[10px] opacity-80 ${textClass}`}>
+            <div className={`flex justify-between items-center text-[9px] opacity-80 ${textClass}`}>
                <span>{formatTime(currentTime)}</span>
                <span>{formatTime(duration)}</span>
             </div>
         </div>
+        <button 
+           onClick={toggleSpeed} 
+           className={`px-1 py-0.5 rounded text-[9px] font-extrabold transition shadow-sm flex-shrink-0 ${btnClass} ${textClass}`}
+           title="سرعة التشغيل"
+        >
+           {playbackSpeed}x
+        </button>
     </div>
   );
 };
@@ -382,8 +401,13 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose, currentUser, ind
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
+  const [partnerActivity, setPartnerActivity] = useState<'idle' | 'typing' | 'recording'>('idle');
   const [replyingTo, setReplyingTo] = useState<ChatMessage | null>(null);
   const [activeReactionId, setActiveReactionId] = useState<string | null>(null);
+  
+  // Search Inside Chat State
+  const [showSearch, setShowSearch] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   
   // New Emoji Picker States
   const [activeEmojiTab, setActiveEmojiTab] = useState<'recent' | keyof typeof EMOJI_CATEGORIES>('recent');
@@ -398,7 +422,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose, currentUser, ind
   const [messageReactionTarget, setMessageReactionTarget] = useState<string | null>(null);
 
   // Modals State
-  const [activeModal, setActiveModal] = useState<'report' | 'readReceipts' | 'theme' | 'emoji' | 'nickname' | 'deleteConfirm' | 'deleteMessageConfirm' | 'unsend' | 'forward' | null>(null);
+  const [activeModal, setActiveModal] = useState<'report' | 'readReceipts' | 'theme' | 'emoji' | 'nickname' | 'deleteConfirm' | 'deleteMessageConfirm' | 'unsend' | 'forward' | 'blockConfirm' | 'profile' | null>(null);
   const [modalInput, setModalInput] = useState('');
   const [reportReason, setReportReason] = useState('');
   const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
@@ -413,9 +437,24 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose, currentUser, ind
 
   // Audio Recording State
   const [isRecording, setIsRecording] = useState(false);
+  const [isRecordingLocked, setIsRecordingLocked] = useState(false);
+  const isRecordingRef = useRef(false);
+  const isRecordingLockedRef = useRef(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  const shouldDiscardRef = useRef(false);
+  const touchStartYRef = useRef<number | null>(null);
+
+  const updateRecordingLocked = (locked: boolean) => {
+    setIsRecordingLocked(locked);
+    isRecordingLockedRef.current = locked;
+  };
+
+  const updateIsRecording = (rec: boolean) => {
+    setIsRecording(rec);
+    isRecordingRef.current = rec;
+  };
   
   // Call State
   const [callStatus, setCallStatus] = useState<'idle' | 'calling' | 'connected' | 'ended'>('idle');
@@ -498,23 +537,26 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose, currentUser, ind
       setMessages(prev => prev.map(msg => msg.id === id ? { ...msg, status } : msg));
     };
 
-    const handleTypingStart = () => setIsTyping(true);
-    const handleTypingStop = () => setIsTyping(false);
+    const handleTypingStart = () => { setIsTyping(true); setPartnerActivity('typing'); };
+    const handleRecordingStart = () => { setIsTyping(true); setPartnerActivity('recording'); };
+    const handleTypingStop = () => { setIsTyping(false); setPartnerActivity('idle'); };
 
     socket.on('message_status_update', handleStatusUpdate);
     socket.on('partner_typing_start', handleTypingStart);
+    socket.on('partner_recording_start', handleRecordingStart);
     socket.on('partner_typing_stop', handleTypingStop);
 
     return () => {
       socket.off('message_status_update', handleStatusUpdate);
       socket.off('partner_typing_start', handleTypingStart);
+      socket.off('partner_recording_start', handleRecordingStart);
       socket.off('partner_typing_stop', handleTypingStop);
     };
   }, []);
 
   useLayoutEffect(() => {
     scrollToBottom();
-  }, [messages, isMinimized, callStatus, isTyping, replyingTo, pendingMedia]);
+  }, [messages, isMinimized, callStatus, isTyping, partnerActivity, replyingTo, pendingMedia]);
 
   useEffect(() => {
     return () => {
@@ -758,7 +800,35 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose, currentUser, ind
       simulateReply('sticker');
   };
 
-  const startRecording = async () => {
+  const cancelRecording = () => {
+    shouldDiscardRef.current = true;
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+    }
+    updateIsRecording(false);
+    updateRecordingLocked(false);
+    setRecordingDuration(0);
+    if (recordingIntervalRef.current) {
+      clearInterval(recordingIntervalRef.current);
+      recordingIntervalRef.current = null;
+    }
+  };
+
+  const stopAndSendRecording = () => {
+    shouldDiscardRef.current = false;
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+    }
+    updateIsRecording(false);
+    updateRecordingLocked(false);
+    setRecordingDuration(0);
+    if (recordingIntervalRef.current) {
+      clearInterval(recordingIntervalRef.current);
+      recordingIntervalRef.current = null;
+    }
+  };
+
+  const startRecording = async (e?: React.MouseEvent | React.TouchEvent) => {
     if (settings.isBlocked) return;
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       alert(language === 'ar' ? 'ميزة التسجيل الصوتي غير مدعومة في هذا المتصفح.' : 'Voice recording is not supported in this browser.');
@@ -767,7 +837,15 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose, currentUser, ind
 
     if (pendingMedia) return;
 
+    if (e) {
+      const clientY = 'touches' in e && e.touches.length > 0 
+        ? e.touches[0].clientY 
+        : ('clientY' in e ? e.clientY : null);
+      touchStartYRef.current = clientY;
+    }
+
     try {
+      shouldDiscardRef.current = false;
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       audioChunksRef.current = [];
       
@@ -788,6 +866,21 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose, currentUser, ind
       };
 
       mediaRecorder.onstop = () => {
+        updateIsRecording(false);
+        updateRecordingLocked(false);
+        setRecordingDuration(0);
+        if (recordingIntervalRef.current) {
+          clearInterval(recordingIntervalRef.current);
+          recordingIntervalRef.current = null;
+        }
+
+        if (shouldDiscardRef.current) {
+          shouldDiscardRef.current = false;
+          audioChunksRef.current = [];
+          stream.getTracks().forEach(track => track.stop());
+          return;
+        }
+
         const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
         const audioUrl = URL.createObjectURL(audioBlob);
         
@@ -801,7 +894,9 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose, currentUser, ind
       };
 
       mediaRecorder.start();
-      setIsRecording(true); 
+      updateIsRecording(true); 
+      updateRecordingLocked(false);
+      setRecordingDuration(0);
     } catch (err: any) {
       console.error('Error recording audio:', err);
       let errorMessage = language === 'ar' ? 'حدث خطأ أثناء محاولة الوصول إلى الميكروفون.' : 'An error occurred while trying to access the microphone.';
@@ -812,16 +907,34 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose, currentUser, ind
         errorMessage = language === 'ar' ? 'يرجى السماح بالوصول إلى الميكروفون من إعدادات المتصفح.' : 'Please allow microphone access from your browser settings.';
       }
       alert(errorMessage);
-      setIsRecording(false);
+      updateIsRecording(false);
+      updateRecordingLocked(false);
     }
   };
 
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
+  const handleRecordingTouchOrMouseMove = (clientY: number) => {
+    if (isRecordingRef.current && !isRecordingLockedRef.current && touchStartYRef.current !== null) {
+      const deltaY = clientY - touchStartYRef.current;
+      if (deltaY < -25) {
+        updateRecordingLocked(true);
+      }
     }
   };
+
+  useEffect(() => {
+    const handleGlobalRelease = () => {
+      if (isRecordingRef.current && !isRecordingLockedRef.current) {
+        stopAndSendRecording();
+      }
+    };
+
+    window.addEventListener('mouseup', handleGlobalRelease);
+    window.addEventListener('touchend', handleGlobalRelease);
+    return () => {
+      window.removeEventListener('mouseup', handleGlobalRelease);
+      window.removeEventListener('touchend', handleGlobalRelease);
+    };
+  }, []);
 
   const toggleReaction = (msgId: string, emoji: string) => {
     const msg = messages.find(m => m.id === msgId);
@@ -963,7 +1076,13 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose, currentUser, ind
     if (replyTimeoutRef.current) clearTimeout(replyTimeoutRef.current);
     if (settings.isBlocked) return;
     
+    const isAudio = triggerType === 'audio';
+    setPartnerActivity(isAudio ? 'recording' : 'typing');
+    setIsTyping(true);
+
     replyTimeoutRef.current = setTimeout(() => {
+      setPartnerActivity('idle');
+      setIsTyping(false);
       let replyText = 'أنا بخير شكراً لسؤالك! 👍';
       let replyType: ChatMessage['type'] = 'text';
       let mediaUrl: string | undefined = undefined;
@@ -999,6 +1118,13 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose, currentUser, ind
 
       setMessages(prev => [...prev, replyMsg]);
       playAudio('message_received');
+
+      // Trigger Web Push Notification for incoming message
+      sendWebPushNotification(`رسالة جديدة من ${user.name}`, {
+        body: replyText || (replyType === 'sticker' ? 'أرسل ملصقاً' : replyType === 'audio' ? 'أرسل تسجيلاً صوتياً' : 'أرسل وسائط'),
+        icon: user.avatar,
+        tag: `chat-${user.id}`
+      });
 
       // Increment Unread Counter if Minimized
       if (isMinimizedRef.current) {
@@ -1217,20 +1343,20 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose, currentUser, ind
       );
   };
 
-  // Updated StatusIcon to use per-message ReadReceipt setting
+  // Updated StatusIcon to use per-message ReadReceipt setting (blue double checkmarks for seen)
   const StatusIcon = ({ msg }: { msg: ChatMessage }) => {
     const { status, readReceiptEnabled } = msg;
 
     if (status === 'seen') {
-       if (readReceiptEnabled) {
-          // Green 900 for Enabled + Seen
-          return <CheckCheck className="w-3 h-3 text-emerald-900 dark:text-emerald-400" />;
+       if (readReceiptEnabled !== false) {
+          return <CheckCheck className="w-3.5 h-3.5 text-blue-500 dark:text-blue-400" title={language === 'ar' ? 'تمت القراءة ✔✔' : 'Read'} />;
        }
-       return <CheckCheck className="w-3 h-3 text-gray-400" />;
+       return <CheckCheck className="w-3.5 h-3.5 text-gray-300 dark:text-gray-400" title={language === 'ar' ? 'تم التسليم' : 'Delivered'} />;
     }
 
-    if (status === 'delivered') return <CheckCheck className="w-3 h-3 text-gray-400" />;
-    return <Check className="w-3 h-3 text-gray-400" />;
+    if (status === 'delivered') return <CheckCheck className="w-3.5 h-3.5 text-gray-300 dark:text-gray-400" title={language === 'ar' ? 'تم التسليم' : 'Delivered'} />;
+    if (status === 'sending') return <Clock className="w-3 h-3 text-gray-300 animate-spin" title={language === 'ar' ? 'جاري الإرسال' : 'Sending'} />;
+    return <Check className="w-3.5 h-3.5 text-gray-300 dark:text-gray-400" title={language === 'ar' ? 'تم الإرسال' : 'Sent'} />;
   };
 
   const renderModal = () => {
@@ -1276,6 +1402,8 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose, currentUser, ind
                           {activeModal === 'deleteMessageConfirm' && <Trash2 className="w-5 h-5 text-red-600" />}
                           {activeModal === 'unsend' && <Trash2 className="w-5 h-5 text-red-600" />}
                           {activeModal === 'forward' && <CornerUpRight className="w-5 h-5 text-blue-600" />}
+                          {activeModal === 'blockConfirm' && <ShieldBan className="w-5 h-5 text-red-600" />}
+                          {activeModal === 'profile' && <UserCircle className="w-5 h-5 text-emerald-600" />}
                           
                           {activeModal === 'report' ? t.common_report : 
                            activeModal === 'readReceipts' ? (language === 'ar' ? 'مؤشرات قراءة الرسائل' : 'Read Receipts') : 
@@ -1285,6 +1413,8 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose, currentUser, ind
                            activeModal === 'deleteMessageConfirm' ? (language === 'ar' ? 'حذف الرسالة' : 'Delete Message') :
                            activeModal === 'unsend' ? (language === 'ar' ? '(إلي من تريد إلغاء إرسال هذه الرسالة؟)' : 'Unsend Message?') :
                            activeModal === 'forward' ? (language === 'ar' ? 'إعادة توجيه الرسالة' : 'Forward Message') :
+                           activeModal === 'blockConfirm' ? (language === 'ar' ? 'تأكيد الحظر' : 'Confirm Block') :
+                           activeModal === 'profile' ? (language === 'ar' ? 'الملف الشخصي' : 'Friend Profile') :
                            (language === 'ar' ? 'تعديل الكنية' : 'Edit Nickname')}
                       </h3>
                       <button onClick={() => setActiveModal(null)} className="text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-full p-1 transition">
@@ -1491,9 +1621,97 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose, currentUser, ind
                               />
                           </div>
                       )}
+
+                      {activeModal === 'blockConfirm' && (
+                          <div className="text-center p-2">
+                              <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4 animate-bounce">
+                                  <ShieldBan className="w-8 h-8 text-red-600" />
+                              </div>
+                              <h4 className="font-bold text-lg text-gray-900 dark:text-white mb-2">
+                                  {language === 'ar' ? 'تأكيد الحظر' : 'Confirm Block'}
+                              </h4>
+                              <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
+                                  {language === 'ar' 
+                                    ? `هل أنت تأكد من حظر ${settings.nickname || user.name}؟ لن تمكن من استقبال الرسائل أو المكالمات منه.` 
+                                    : `Are you sure you want to block ${settings.nickname || user.name}? You will no longer receive messages or calls from them.`}
+                              </p>
+                          </div>
+                      )}
+
+                      {activeModal === 'profile' && (
+                          <div className="flex flex-col items-center text-center p-1">
+                              {/* Cover / Avatar Header */}
+                              <div className="relative mb-3 flex flex-col items-center">
+                                  <div className="relative">
+                                      <img 
+                                          src={user.avatar} 
+                                          alt={user.name} 
+                                          className="w-20 h-20 rounded-full border-4 border-emerald-500/30 shadow-xl object-cover" 
+                                      />
+                                      {user.online && (
+                                          <div className="absolute bottom-1 right-1 w-4 h-4 bg-green-500 border-2 border-white dark:border-gray-800 rounded-full shadow-md" title={language === 'ar' ? 'متصل الآن' : 'Online'} />
+                                      )}
+                                  </div>
+                                  <h3 className="font-extrabold text-lg text-gray-900 dark:text-white mt-2">
+                                      {settings.nickname || user.name}
+                                  </h3>
+                                  {settings.nickname && (
+                                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                                          ({user.name})
+                                      </span>
+                                  )}
+                                  <span className="inline-flex items-center gap-1 mt-1 text-[11px] px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 font-semibold">
+                                      {user.online ? (language === 'ar' ? '● متصل الآن' : '● Online') : (language === 'ar' ? 'غير متصل' : 'Offline')}
+                                  </span>
+                              </div>
+
+                              {/* Info Cards */}
+                              <div className="w-full space-y-2 text-start text-xs my-2 bg-gray-50 dark:bg-gray-700/40 p-3 rounded-xl border border-gray-100 dark:border-gray-700">
+                                  <div className="flex items-center justify-between py-1 border-b dark:border-gray-600">
+                                      <span className="text-gray-500 dark:text-gray-400 font-medium">{language === 'ar' ? 'معرّف المستخدم' : 'User ID'}:</span>
+                                      <span className="font-mono font-bold text-gray-800 dark:text-gray-200">@{user.id || 'user_102'}</span>
+                                  </div>
+                                  <div className="flex items-center justify-between py-1 border-b dark:border-gray-600">
+                                      <span className="text-gray-500 dark:text-gray-400 font-medium">{language === 'ar' ? 'الحالة الشخصية' : 'Status Bio'}:</span>
+                                      <span className="font-semibold text-gray-800 dark:text-gray-200">{language === 'ar' ? 'متوفر لـ الدردشة ✨' : 'Available to chat ✨'}</span>
+                                  </div>
+                                  <div className="flex items-center justify-between py-1">
+                                      <span className="text-gray-500 dark:text-gray-400 font-medium">{language === 'ar' ? 'الوسائط المشتركة' : 'Shared Media'}:</span>
+                                      <span className="font-bold text-emerald-600 dark:text-emerald-400">{messages.filter(m => m.type === 'image' || m.type === 'video' || m.type === 'audio').length} {language === 'ar' ? 'عنصر' : 'items'}</span>
+                                  </div>
+                              </div>
+
+                              {/* Quick Actions inside Profile */}
+                              <div className="grid grid-cols-3 gap-2 w-full mt-2">
+                                  <button 
+                                      onClick={() => { setActiveModal(null); startCall('audio'); }}
+                                      className="flex flex-col items-center gap-1 p-2 bg-emerald-50 dark:bg-emerald-900/20 hover:bg-emerald-100 text-emerald-700 dark:text-emerald-300 rounded-xl transition text-[11px] font-bold"
+                                  >
+                                      <Phone className="w-4 h-4" />
+                                      <span>{language === 'ar' ? 'مكالمة' : 'Call'}</span>
+                                  </button>
+                                  <button 
+                                      onClick={() => { setActiveModal(null); startCall('video'); }}
+                                      className="flex flex-col items-center gap-1 p-2 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 text-blue-700 dark:text-blue-300 rounded-xl transition text-[11px] font-bold"
+                                  >
+                                      <Video className="w-4 h-4" />
+                                      <span>{language === 'ar' ? 'فيديو' : 'Video'}</span>
+                                  </button>
+                                  <button 
+                                      onClick={() => {
+                                          setSettings(p => ({ ...p, isMuted: !p.isMuted }));
+                                      }}
+                                      className="flex flex-col items-center gap-1 p-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 text-gray-700 dark:text-gray-200 rounded-xl transition text-[11px] font-bold"
+                                  >
+                                      {settings.isMuted ? <BellOff className="w-4 h-4 text-red-500" /> : <Bell className="w-4 h-4 text-emerald-600" />}
+                                      <span>{settings.isMuted ? (language === 'ar' ? 'إلغاء الكتم' : 'Unmute') : (language === 'ar' ? 'كتم' : 'Mute')}</span>
+                                  </button>
+                              </div>
+                          </div>
+                      )}
                   </div>
 
-                  {(activeModal !== 'emoji' && activeModal !== 'theme' && activeModal !== 'forward' && activeModal !== 'unsend') && (
+                  {(activeModal !== 'emoji' && activeModal !== 'theme' && activeModal !== 'forward' && activeModal !== 'unsend' && activeModal !== 'profile') && (
                       <div className="p-4 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 flex justify-end gap-2 flex-shrink-0">
                           <button onClick={() => setActiveModal(null)} className="px-6 py-2.5 text-gray-600 dark:text-gray-300 font-bold hover:bg-gray-200 dark:hover:bg-gray-600 rounded-xl transition text-sm">{t.common_cancel}</button>
                           <button 
@@ -1506,13 +1724,29 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose, currentUser, ind
                                     clearChat();
                                 } else if (activeModal === 'deleteMessageConfirm') {
                                     handleDeleteMessage();
+                                } else if (activeModal === 'blockConfirm') {
+                                    setSettings(prev => ({...prev, isBlocked: true}));
                                 }
                                 setActiveModal(null);
                             }} 
-                            className={`px-8 py-2.5 font-bold rounded-xl transition shadow-lg text-sm text-white transform active:scale-95 bg-emerald-700 hover:bg-blue-700`}
+                            className={`px-8 py-2.5 font-bold rounded-xl transition shadow-lg text-sm text-white transform active:scale-95 ${activeModal === 'blockConfirm' ? 'bg-red-600 hover:bg-red-700' : 'bg-emerald-700 hover:bg-blue-700'}`}
                           >
-                              {activeModal === 'deleteConfirm' || activeModal === 'deleteMessageConfirm' ? t.common_delete : (activeModal === 'report' ? t.common_send : t.common_save)}
+                              {activeModal === 'blockConfirm' ? (language === 'ar' ? 'حظر' : 'Block') : activeModal === 'deleteConfirm' || activeModal === 'deleteMessageConfirm' ? t.common_delete : (activeModal === 'report' ? t.common_send : t.common_save)}
                           </button>
+                      </div>
+                  )}
+
+                  {activeModal === 'profile' && (
+                      <div className="p-4 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 flex justify-between items-center flex-shrink-0">
+                          <button 
+                            onClick={() => {
+                              setActiveModal('blockConfirm');
+                            }} 
+                            className="text-xs font-bold text-red-600 hover:text-red-700 flex items-center gap-1 hover:underline"
+                          >
+                              <ShieldBan className="w-4 h-4" /> {language === 'ar' ? 'حظر المستخدم' : 'Block User'}
+                          </button>
+                          <button onClick={() => setActiveModal(null)} className="px-6 py-2 text-gray-700 dark:text-gray-200 font-bold hover:bg-gray-200 dark:hover:bg-gray-600 rounded-xl transition text-sm">{t.common_close}</button>
                       </div>
                   )}
 
@@ -1604,23 +1838,69 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose, currentUser, ind
         className={`flex items-center justify-between p-2.5 border-b dark:border-gray-700 shadow-sm bg-emerald-700 hover:bg-blue-700 transition-colors duration-300 rounded-t-lg cursor-pointer text-white`}
         onClick={() => setIsMinimized(true)}
       >
-        <div className="flex items-center gap-2 hover:bg-white/10 p-1 rounded-md transition">
+        <div 
+          className="flex items-center gap-2 hover:bg-white/10 p-1 rounded-md transition cursor-pointer"
+          onClick={(e) => { e.stopPropagation(); setActiveModal('profile'); }}
+          title={language === 'ar' ? 'عرض الملف الشخصي' : 'View Profile'}
+        >
           <div className="relative">
              <img src={user.avatar} alt={user.name} className="w-9 h-9 rounded-full border border-gray-200" />
              {user.online && <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>}
           </div>
           <div className="flex flex-col">
              <span className="font-bold text-sm text-white hover:underline">{settings.nickname || user.name}</span>
-             <span className="text-[10px] text-gray-200">{user.online ? t.common_online : t.nav_offline}</span>
+             <span className="text-[10px] text-gray-200">
+               {partnerActivity === 'recording' ? (
+                 <span className="text-emerald-200 font-bold animate-pulse flex items-center gap-1">
+                   <Mic className="w-3 h-3 animate-pulse inline-block" />
+                   {language === 'ar' ? 'جاري تسجيل مقطع صوتي...' : 'recording voice note...'}
+                 </span>
+               ) : (isTyping || partnerActivity === 'typing') ? (
+                 <span className="text-emerald-200 font-bold animate-pulse flex items-center gap-1">
+                   {language === 'ar' ? 'جاري الكتابة...' : 'typing...'}
+                 </span>
+               ) : (
+                 user.online ? t.common_online : t.nav_offline
+               )}
+             </span>
           </div>
         </div>
         <div className="flex items-center gap-0.5 text-white" onClick={(e) => e.stopPropagation()}>
+           <button onClick={() => setShowSearch(!showSearch)} className={`p-1.5 hover:bg-white/20 rounded-full transition ${showSearch ? 'bg-white/30' : ''}`} title={language === 'ar' ? 'البحث في المحادثة' : 'Search Chat'}>
+              <Search className="w-4 h-4" />
+           </button>
            <button onClick={() => startCall('audio')} className="p-1.5 hover:bg-white/20 rounded-full transition" title="مكالمة صوتية"><Phone className="w-5 h-5" /></button>
            <button onClick={() => startCall('video')} className="p-1.5 hover:bg-white/20 rounded-full transition" title="مكالمة فيديو"><Video className="w-5 h-5" /></button>
            <button className="p-1.5 hover:bg-white/20 rounded-full transition" onClick={() => setIsMinimized(true)}><Minus className="w-5 h-5" /></button>
            <button className="p-1.5 hover:bg-white/20 rounded-full transition" onClick={onClose}><X className="w-5 h-5" /></button>
         </div>
       </div>
+
+      {/* Search Bar inside Chat */}
+      {showSearch && (
+        <div className="p-2 bg-gray-100 dark:bg-gray-800 border-b dark:border-gray-700 flex items-center gap-2 animate-fadeIn z-10 flex-shrink-0">
+          <Search className="w-4 h-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
+          <input 
+            type="text" 
+            autoFocus
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder={language === 'ar' ? 'البحث في المحادثة...' : 'Search in conversation...'}
+            className="w-full bg-white dark:bg-gray-700 text-xs px-3 py-1.5 rounded-full border dark:border-gray-600 outline-none focus:border-emerald-500 dark:text-white shadow-inner"
+          />
+          {searchQuery && (
+            <span className="text-[10px] text-emerald-700 dark:text-emerald-300 font-bold flex-shrink-0 whitespace-nowrap">
+              {messages.filter(m => m.text && m.text.toLowerCase().includes(searchQuery.toLowerCase())).length} {language === 'ar' ? 'نتيجة' : 'results'}
+            </span>
+          )}
+          <button 
+            onClick={() => { setShowSearch(false); setSearchQuery(''); }} 
+            className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full text-gray-500 transition"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
 
       {/* Messages Area */}
       <div className={`flex-1 overflow-y-auto p-3 no-scrollbar relative ${settings.theme.background}`}>
@@ -1680,10 +1960,12 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose, currentUser, ind
         <div className="space-y-4">
           {messages.map((msg) => {
             const repliedMsg = msg.replyTo ? messages.find(m => m.id === msg.replyTo) : null;
+            const isMatch = searchQuery.trim() !== '' && msg.text && msg.text.toLowerCase().includes(searchQuery.toLowerCase());
+            const hasQuery = searchQuery.trim() !== '';
             return (
               <div 
                 key={msg.id} 
-                className={`flex flex-col ${msg.sender === 'me' ? 'items-end' : 'items-start'} relative group mb-2`}
+                className={`flex flex-col ${msg.sender === 'me' ? 'items-end' : 'items-start'} relative group mb-2 transition-opacity ${hasQuery && !isMatch ? 'opacity-30 hover:opacity-100' : 'opacity-100'}`}
                 onContextMenu={(e) => { e.preventDefault(); setActiveReactionId(msg.id); }}
               >
                 {msg.type === 'system' ? (
@@ -1711,7 +1993,9 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose, currentUser, ind
                           {/* Message Bubble */}
                           <div 
                               id={`msg-${msg.id}`}
-                              className={`px-3 py-2 rounded-2xl text-[15px] shadow-sm relative transition-all max-w-[85%] ${ 
+                              className={`px-3 py-2 rounded-2xl text-[15px] shadow-sm relative transition-all max-w-[85%] ${
+                                  isMatch ? 'ring-2 ring-emerald-500 dark:ring-emerald-400 bg-emerald-50/20' : ''
+                              } ${ 
                                   msg.type === 'emoji' ? 'bg-transparent shadow-none p-0' : 
                                   msg.type === 'sticker' ? 'bg-transparent shadow-none p-0' : 
                                   msg.sender === 'me' 
@@ -1886,12 +2170,25 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose, currentUser, ind
             );
           })}
 
-          {isTyping && (
-             <div className="flex justify-start animate-fadeIn">
-                 <div className="bg-gray-200 dark:bg-gray-700 px-4 py-3 rounded-2xl rounded-bl-none flex gap-1">
-                     <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                     <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-75"></div>
-                     <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-150"></div>
+          {(isTyping || partnerActivity !== 'idle') && (
+             <div className="flex justify-start items-center gap-2 animate-fadeIn my-2">
+                 <img src={user.avatar} className="w-6 h-6 rounded-full border border-gray-200 cursor-pointer hover:opacity-80 transition" alt="" onClick={() => setActiveModal('profile')} />
+                 <div className="bg-gray-100 dark:bg-gray-700 px-3 py-2 rounded-2xl rounded-bl-none flex items-center gap-2 shadow-sm border dark:border-gray-600">
+                     {partnerActivity === 'recording' ? (
+                       <div className="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
+                         <Mic className="w-3.5 h-3.5 text-emerald-500 animate-pulse" />
+                         <span>{language === 'ar' ? 'جاري تسجيل مقطع صوتي...' : 'recording voice note...'}</span>
+                       </div>
+                     ) : (
+                       <span className="text-xs text-gray-600 dark:text-gray-300 font-semibold">
+                          {language === 'ar' ? 'جاري الكتابة...' : 'typing...'}
+                       </span>
+                     )}
+                     <div className="flex gap-1 items-center">
+                       <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-bounce"></div>
+                       <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-bounce delay-75"></div>
+                       <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-bounce delay-150"></div>
+                     </div>
                  </div>
              </div>
           )}
@@ -1960,12 +2257,12 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose, currentUser, ind
                  </div>
 
                  {[ 
-                    { id: 'profile', icon: UserCircle, label: t.profile_view_profile || (language === 'ar' ? 'عرض الملف الشخصي' : 'View Profile'), action: () => alert(`Navigating to profile: ${user.id}`) },
+                    { id: 'profile', icon: UserCircle, label: t.profile_view_profile || (language === 'ar' ? 'عرض الملف الشخصي' : 'View Profile'), action: () => setActiveModal('profile') },
                     { id: 'theme', icon: Palette, label: language === 'ar' ? 'تغيير السمة' : 'Change Theme', action: () => { setPreviewTheme(settings.theme); setActiveModal('theme'); } },
                     { id: 'emoji', icon: Smile, label: language === 'ar' ? 'الرمز التعبيري' : 'Quick Emoji', action: () => { setModalInput(settings.quickEmoji); setActiveModal('emoji'); } },
                     { id: 'nicknames', icon: Type, label: language === 'ar' ? 'الكنيات' : 'Nicknames', action: () => { setModalInput(settings.nickname || user.name); setActiveModal('nickname'); } },
                     { id: 'mute', icon: settings.isMuted ? BellOff : Bell, label: settings.isMuted ? (t.common_unmute || (language === 'ar' ? 'تفعيل الإشعارات' : 'Unmute')) : (t.common_mute || (language === 'ar' ? 'كتم الإشعارات' : 'Mute')), action: () => setSettings(p => ({...p, isMuted: !p.isMuted})) },
-                    { id: 'block', icon: ShieldBan, label: settings.isBlocked ? (language === 'ar' ? 'إلغاء الحظر' : 'Unblock') : (t.profile_block || (language === 'ar' ? 'حظر' : 'Block')), action: () => setSettings(p => ({...p, isBlocked: !p.isBlocked})) },
+                    { id: 'block', icon: ShieldBan, label: settings.isBlocked ? (language === 'ar' ? 'إلغاء الحظر' : 'Unblock') : (t.profile_block || (language === 'ar' ? 'حظر' : 'Block')), action: () => { if (!settings.isBlocked) { setActiveModal('blockConfirm'); } else { setSettings(p => ({...p, isBlocked: false})); } } },
                     { id: 'read_receipts', icon: CheckCheck, label: language === 'ar' ? 'مؤشرات القراءة' : 'Read Receipts', action: () => setActiveModal('readReceipts') },
                     { id: 'archive', icon: Archive, label: language === 'ar' ? 'أرشفة المحادثة' : 'Archive Chat', action: () => { alert('Chat archived'); onClose(); } },
                     { id: 'delete', icon: Trash2, label: language === 'ar' ? 'حذف المحادثة' : 'Delete Chat', action: () => setActiveModal('deleteConfirm'), color: 'text-red-600' },
@@ -1986,7 +2283,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose, currentUser, ind
              <div className="flex items-center gap-0.5">
                  <button 
                     onClick={() => setShowMoreMenu(!showMoreMenu)} 
-                    className={`text-fb-blue hover:bg-gray-100 dark:hover:bg-gray-700 p-1.5 rounded-full transition ${showMoreMenu ? 'bg-gray-100 dark:bg-gray-700' : ''}`}
+                    className={`text-emerald-600 dark:text-emerald-400 hover:text-blue-700 dark:hover:text-blue-700 hover:bg-gray-100 dark:hover:bg-gray-700 p-1.5 rounded-full transition-colors ${showMoreMenu ? 'bg-gray-100 dark:bg-gray-700' : ''}`}
                  >
                      <MoreHorizontal className="w-6 h-6" />
                  </button>
@@ -2001,7 +2298,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose, currentUser, ind
                      />
                      <button 
                         onClick={() => fileInputRef.current?.click()} 
-                        className={`text-fb-blue hover:bg-gray-100 dark:hover:bg-gray-700 p-1.5 rounded-full transition ${pendingMedia ? 'bg-blue-100 dark:bg-blue-900/30' : ''}`}
+                        className={`text-emerald-600 dark:text-emerald-400 hover:text-blue-700 dark:hover:text-blue-700 hover:bg-gray-100 dark:hover:bg-gray-700 p-1.5 rounded-full transition-colors ${pendingMedia ? 'bg-emerald-100 dark:bg-emerald-900/30' : ''}`}
                         title={language === 'ar' ? 'إرسال صورة/فيديو' : 'Send Photo/Video'}
                      >
                          <Image className="w-6 h-6" />
@@ -2010,7 +2307,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose, currentUser, ind
                  
                  <button 
                     onClick={() => { setShowEmojiPicker(!showEmojiPicker); setMessageMenuOpen(null); }}
-                    className={`text-fb-blue hover:bg-gray-100 dark:hover:bg-gray-700 p-1.5 rounded-full transition ${showEmojiPicker ? 'bg-gray-100 dark:bg-gray-700' : ''}`}
+                    className={`text-emerald-600 dark:text-emerald-400 hover:text-blue-700 dark:hover:text-blue-700 hover:bg-gray-100 dark:hover:bg-gray-700 p-1.5 rounded-full transition-colors ${showEmojiPicker ? 'bg-gray-100 dark:bg-gray-700' : ''}`}
                  >
                      <Smile className="w-6 h-6" />
                  </button>
@@ -2018,20 +2315,56 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose, currentUser, ind
 
              {/* Input Area or Recorder */}
              {isRecording ? (
-                <div className="flex-1 flex items-center justify-between bg-red-50 dark:bg-red-900/20 rounded-full px-4 py-2 animate-pulse">
-                   <div className="flex items-center gap-2 text-red-500">
-                      <div className="w-2.5 h-2.5 bg-red-500 rounded-full animate-ping"></div>
-                      <span className="text-sm font-mono">{formatDuration(recordingDuration)}</span>
+                <div 
+                   className="flex-1 flex items-center justify-between bg-red-50 dark:bg-red-900/20 rounded-full px-3 py-1.5 border border-red-200 dark:border-red-800/40 select-none transition-all"
+                   onTouchMove={(e) => handleRecordingTouchOrMouseMove(e.touches[0].clientY)}
+                   onMouseMove={(e) => { if (e.buttons === 1) handleRecordingTouchOrMouseMove(e.clientY); }}
+                >
+                   <div className="flex items-center gap-2 text-red-500 min-w-0">
+                      <div className="w-2.5 h-2.5 bg-red-500 rounded-full animate-ping flex-shrink-0"></div>
+                      <span className="text-xs font-mono font-bold flex-shrink-0">{formatDuration(recordingDuration)}</span>
+                      {isRecordingLocked ? (
+                        <span className="text-[10px] bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-300 px-1.5 py-0.5 rounded-md font-bold flex items-center gap-0.5 whitespace-nowrap">
+                          <Lock className="w-3 h-3" /> {language === 'ar' ? 'مثبّت' : 'Locked'}
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-gray-500 dark:text-gray-400 font-semibold animate-pulse hidden sm:flex items-center gap-0.5 whitespace-nowrap">
+                          ⬆️ {language === 'ar' ? 'اسحب للأعلى للتثبيت' : 'Swipe up to lock'}
+                        </span>
+                      )}
                    </div>
-                   <button onClick={stopRecording} className="text-red-600 font-bold text-xs hover:underline">
-                      {language === 'ar' ? 'اضغط للإرسال' : 'Tap to send'}
-                   </button>
+
+                   <div className="flex items-center gap-1.5 flex-shrink-0">
+                      {!isRecordingLocked && (
+                        <button 
+                          onClick={() => updateRecordingLocked(true)} 
+                          className="p-1.5 rounded-full text-gray-500 hover:text-red-500 hover:bg-red-100 dark:hover:bg-red-900/40 transition"
+                          title={language === 'ar' ? 'تثبيت التسجيل' : 'Lock Recording'}
+                        >
+                          <Lock className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                      <button 
+                        onClick={cancelRecording} 
+                        className="p-1.5 rounded-full text-gray-500 hover:text-red-600 hover:bg-red-100 dark:hover:bg-red-900/40 transition"
+                        title={language === 'ar' ? 'إلغاء التسجيل' : 'Cancel'}
+                      >
+                         <Trash2 className="w-4 h-4 text-red-500" />
+                      </button>
+                      <button 
+                        onClick={stopAndSendRecording} 
+                        className="p-1.5 bg-emerald-600 hover:bg-blue-600 text-white rounded-full transition shadow-sm"
+                        title={language === 'ar' ? 'إرسال التسجيل' : 'Send Recording'}
+                      >
+                         <Send className="w-3.5 h-3.5 rtl:rotate-180" />
+                      </button>
+                   </div>
                 </div>
              ) : (
                 <form onSubmit={(e) => handleSend(e)} className="flex-1 flex items-center">
                    <input 
                      type="text" 
-                     className="w-full bg-gray-100 dark:bg-gray-700 dark:text-white rounded-full px-4 py-2 text-sm outline-none focus:bg-gray-50 dark:focus:bg-gray-600 transition border border-transparent focus:border-fb-blue"
+                     className="w-full bg-gray-100 dark:bg-gray-700 dark:text-white rounded-full px-4 py-2 text-sm outline-none focus:bg-gray-50 dark:focus:bg-gray-600 transition border border-transparent focus:border-emerald-500"
                      placeholder={pendingMedia ? (language === 'ar' ? "أضف شرحاً..." : "Add caption...") : (replyingTo ? (language === 'ar' ? "الرد على رسالة..." : "Reply to message...") : (t.placeholders_type_message || (language === 'ar' ? "اكتب رسالة..." : "Type a message...")))}
                      value={inputText}
                      onChange={(e) => setInputText(e.target.value)}
@@ -2044,7 +2377,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose, currentUser, ind
              {/* Send or Record Button */}
              {inputText || pendingMedia ? (
                  <button 
-                    className="text-fb-blue hover:bg-gray-100 dark:hover:bg-gray-700 p-2 rounded-full transition transform hover:scale-110" 
+                    className="text-emerald-600 dark:text-emerald-400 hover:text-blue-700 dark:hover:text-blue-700 hover:bg-gray-100 dark:hover:bg-gray-700 p-2 rounded-full transition transform hover:scale-110" 
                     onClick={(e) => handleSend(e)}
                  >
                      <Send className="w-5 h-5 rtl:rotate-180" />
@@ -2052,19 +2385,20 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose, currentUser, ind
              ) : (
                  isRecording ? (
                     <button 
-                      className="text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 p-2 rounded-full transition transform hover:scale-110" 
-                      onClick={() => {
-                        if (mediaRecorderRef.current) mediaRecorderRef.current.stop();
-                      }}
+                      className="text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 p-2 rounded-full transition transform hover:scale-110" 
+                      onClick={stopAndSendRecording}
+                      title={language === 'ar' ? "إرسال" : "Send"}
                     >
                         <Send className="w-5 h-5 rtl:rotate-180" />
                     </button>
                  ) : (
                     <div className="flex items-center">
                        <button 
-                          className="text-fb-blue hover:bg-gray-100 dark:hover:bg-gray-700 p-2 rounded-full transition transform hover:scale-110" 
-                          onClick={startRecording}
-                          title={language === 'ar' ? "تسجيل صوتي" : "Voice Record"}
+                          className="text-emerald-600 dark:text-emerald-400 hover:text-blue-700 dark:hover:text-blue-700 hover:bg-gray-100 dark:hover:bg-gray-700 p-2 rounded-full transition transform hover:scale-110 active:scale-95" 
+                          onMouseDown={(e) => startRecording(e)}
+                          onTouchStart={(e) => startRecording(e)}
+                          onClick={(e) => { if (!isRecording) startRecording(e); }}
+                          title={language === 'ar' ? "تسجيل صوتي (اسحب للأعلى للتثبيت)" : "Voice Record (Swipe up to lock)"}
                        >
                            <Mic className="w-5 h-5" />
                        </button>

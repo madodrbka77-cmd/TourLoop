@@ -45,7 +45,8 @@ import {
   Clock,
   Search,
   Image as ImageIcon,
-  Camera
+  Camera,
+  BarChart2
 } from 'lucide-react';
 import { Post, Comment, User } from '../types';
 import { useLanguage } from '../context/LanguageContext';
@@ -66,6 +67,8 @@ interface PostCardProps {
   onShowNotification?: (message: string, type?: 'success' | 'info' | 'error') => void;
   onProfileClick?: () => void;
   onFriendClick?: (user: User) => void;
+  onVotePoll?: (postId: string, optionId: string) => void;
+  onHashtagClick?: (hashtag: string) => void;
   isSaved?: boolean;
 }
 
@@ -141,6 +144,8 @@ const PostCard: React.FC<PostCardProps> = ({
   onShowNotification,
   onProfileClick,
   onFriendClick,
+  onVotePoll,
+  onHashtagClick,
   isSaved: initialIsSaved = false 
 }) => {
   const { t, dir, language } = useLanguage();
@@ -1070,8 +1075,121 @@ const PostCard: React.FC<PostCardProps> = ({
       </div>
 
       <div className="px-4 py-2">
-        <p className="text-[15px] text-gray-900 dark:text-gray-200 whitespace-pre-line leading-relaxed text-start">{post.content}</p>
+        <p className="text-[15px] text-gray-900 dark:text-gray-200 whitespace-pre-line leading-relaxed text-start">
+          {(() => {
+            if (!post.content) return null;
+            const hashtagRegex = /#([\u0600-\u06FF\w_]+)/g;
+            const parts = post.content.split(hashtagRegex);
+            const matches = post.content.match(hashtagRegex);
+            if (!matches) return post.content;
+
+            const res: React.ReactNode[] = [];
+            parts.forEach((part, idx) => {
+              res.push(part);
+              if (idx < matches.length) {
+                const tag = matches[idx];
+                res.push(
+                  <span
+                    key={`tag_${idx}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onHashtagClick?.(tag);
+                    }}
+                    className="text-emerald-600 dark:text-emerald-400 font-semibold hover:underline cursor-pointer dir-ltr inline-block px-1 py-0.5 rounded hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition"
+                  >
+                    {tag}
+                  </span>
+                );
+              }
+            });
+            return res;
+          })()}
+        </p>
       </div>
+
+      {/* Poll Component */}
+      {post.poll && (
+        <div className="mx-4 my-2 p-4 bg-purple-50/60 dark:bg-purple-950/30 rounded-2xl border border-purple-100 dark:border-purple-900/60 shadow-sm animate-fadeIn">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="bg-purple-600 dark:bg-purple-500 text-white p-1.5 rounded-lg shadow-sm">
+              <BarChart2 className="w-4 h-4" />
+            </div>
+            <h5 className="font-bold text-gray-900 dark:text-white text-sm md:text-base">
+              {post.poll.question}
+            </h5>
+          </div>
+
+          <div className="space-y-2.5">
+            {post.poll.options.map((option) => {
+              const totalVotes = post.poll?.totalVotes || 0;
+              const percentage = totalVotes > 0 ? Math.round((option.votes / totalVotes) * 100) : 0;
+              const isSelected = post.poll?.userVotedOptionId === option.id;
+
+              return (
+                <button
+                  key={option.id}
+                  onClick={() => onVotePoll?.(post.id, option.id)}
+                  className={`w-full relative overflow-hidden p-3 rounded-xl border text-start transition-all duration-300 group ${
+                    isSelected 
+                      ? 'border-purple-600 dark:border-purple-400 bg-purple-100/50 dark:bg-purple-900/40 ring-1 ring-purple-500' 
+                      : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-purple-300 dark:hover:border-purple-700'
+                  }`}
+                >
+                  {/* Fill Bar for Vote Percentage */}
+                  {totalVotes > 0 && (
+                    <div 
+                      className={`absolute top-0 bottom-0 right-0 rtl:right-0 ltr:left-0 transition-all duration-700 ease-out ${
+                        isSelected 
+                          ? 'bg-purple-200/70 dark:bg-purple-800/50' 
+                          : 'bg-purple-100/40 dark:bg-purple-900/20'
+                      }`}
+                      style={{ width: `${percentage}%` }}
+                    />
+                  )}
+
+                  <div className="relative z-10 flex items-center justify-between gap-3 text-xs sm:text-sm">
+                    <div className="flex items-center gap-2">
+                      <div className={`w-4 h-4 rounded-full border flex items-center justify-center transition-colors ${
+                        isSelected 
+                          ? 'bg-purple-600 border-purple-600 text-white' 
+                          : 'border-gray-400 dark:border-gray-500 group-hover:border-purple-500'
+                      }`}>
+                        {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
+                      </div>
+                      <span className={`font-semibold ${isSelected ? 'text-purple-900 dark:text-purple-200' : 'text-gray-800 dark:text-gray-200'}`}>
+                        {option.text}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2 font-bold text-xs">
+                      {totalVotes > 0 && (
+                        <span className="text-purple-700 dark:text-purple-300">
+                          {percentage}%
+                        </span>
+                      )}
+                      <span className="text-gray-500 dark:text-gray-400 text-[11px] font-normal">
+                        ({option.votes})
+                      </span>
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="mt-3 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 pt-2 border-t border-purple-100/60 dark:border-purple-900/40">
+            <span>
+              {post.poll.totalVotes} {language === 'ar' ? 'أصوات إجمالاً' : 'total votes'}
+            </span>
+            {post.poll.userVotedOptionId && (
+              <span className="text-purple-600 dark:text-purple-400 font-semibold flex items-center gap-1">
+                <Check className="w-3 h-3" />
+                {language === 'ar' ? 'تم التصويت' : 'Voted'}
+              </span>
+            )}
+          </div>
+        </div>
+      )}
 
       {post.image && (
         <div 

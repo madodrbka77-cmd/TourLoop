@@ -4,6 +4,7 @@ import Navbar from './components/Navbar';
 import LoginPage from './components/LoginPage';
 import AppBody from './components/AppBody';
 import AppOverlays from './components/AppOverlays';
+import ReelsPlayer from './components/ReelsPlayer';
 import { User, Post, Comment, Album } from './types';
 import { useLanguage, LanguageProvider } from './context/LanguageContext';
 import { useTheme, ThemeProvider } from './context/ThemeContext';
@@ -135,9 +136,11 @@ const AppContent: React.FC = () => {
   // Use Ref to break circular dependency between usePosts (needs media callbacks) and useMedia (needs handleCreatePost)
   const mediaRef = useRef<any>(null);
 
+  const [showReelsModal, setShowReelsModal] = useState(false);
+
   const { 
     posts, setPosts, handleCreatePost, handleTogglePinPost, handleDeletePost, 
-    handlePostLike, handlePostComment, handleDeletePostComment, handleLikePostComment
+    handlePostLike, handlePostComment, handleDeletePostComment, handleLikePostComment, handleVotePoll
   } = usePosts(
     currentUser, 
     showNotification, 
@@ -743,7 +746,19 @@ const AppContent: React.FC = () => {
         showNotification={showNotification}
         isViewAsMode={isViewAsMode}
         onToggleViewAs={handleToggleViewAs}
+        handleVotePoll={handleVotePoll}
+        onOpenReels={() => setShowReelsModal(true)}
       />
+
+      {showReelsModal && (
+        <ReelsPlayer 
+          posts={posts}
+          currentUser={currentUser}
+          onClose={() => setShowReelsModal(false)}
+          onLike={syncLike}
+          onComment={syncComment}
+        />
+      )}
 
       <AppOverlays 
         activeChats={activeChats}

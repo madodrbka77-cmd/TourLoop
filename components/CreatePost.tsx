@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   Video, 
   Image, 
@@ -19,9 +20,11 @@ import {
   Trash2, 
   Bell, 
   BellOff, 
-  AlertTriangle 
+  AlertTriangle,
+  BarChart2,
+  Plus
 } from 'lucide-react';
-import { User } from '../types';
+import { User, Poll } from '../types';
 import { generatePostContent } from '../services/geminiService';
 import { useLanguage } from '../context/LanguageContext';
 import { 
@@ -34,10 +37,11 @@ import {
   MOCK_FRIENDS, 
   MOCK_LOCATIONS 
 } from '../data/createPostData';
+import { generateId } from '../data/initialData';
 
 interface CreatePostProps {
   currentUser: User;
-  onPostCreate: (content: string, image?: string) => void;
+  onPostCreate: (content: string, image?: string, skipPhotoAdd?: boolean, forcedId?: string, poll?: Poll) => void;
   onShowNotification?: (message: string, type?: 'success' | 'info' | 'error') => void;
   onProfileClick?: () => void;
 }
@@ -83,6 +87,11 @@ const CreatePost: React.FC<CreatePostProps> = ({ currentUser, onPostCreate, onSh
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
   
+  // Poll State
+  const [showPollModal, setShowPollModal] = useState(false);
+  const [pollQuestion, setPollQuestion] = useState('');
+  const [pollOptions, setPollOptions] = useState<string[]>(['', '']);
+
   // Prevents double submission which causes repeated notifications
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -222,6 +231,9 @@ const CreatePost: React.FC<CreatePostProps> = ({ currentUser, onPostCreate, onSh
       setSelectedFeeling(null);
       setTaggedUsers([]);
       setSelectedLocation(null);
+      setPollQuestion('');
+      setPollOptions(['', '']);
+      setShowPollModal(false);
       setErrorMsg(null);
       setShowOptionsMenu(false);
       setIsSubmitting(false);
@@ -254,11 +266,26 @@ const CreatePost: React.FC<CreatePostProps> = ({ currentUser, onPostCreate, onSh
         finalContent = `${metaParts.join(' ')}\n\n${finalContent}`;
     }
 
-    if (finalContent.trim() || selectedImage) {
+    // Build Poll object if valid
+    let pollData: Poll | undefined = undefined;
+    const validOptions = pollOptions.filter(o => o.trim().length > 0);
+    if (pollQuestion.trim() && validOptions.length >= 2) {
+      pollData = {
+        id: `poll_${generateId()}`,
+        question: pollQuestion.trim(),
+        options: validOptions.map((optText, index) => ({
+          id: `opt_${index + 1}_${generateId()}`,
+          text: optText.trim(),
+          votes: 0,
+          voters: []
+        })),
+        totalVotes: 0
+      };
+    }
+
+    if (finalContent.trim() || selectedImage || pollData) {
       setIsSubmitting(true);
-      // Parent 'onPostCreate' is responsible for triggering the success notification.
-      // We avoid adding a notification here to prevent duplicates.
-      onPostCreate(finalContent, selectedImage || undefined);
+      onPostCreate(finalContent, selectedImage || undefined, false, undefined, pollData);
       handleClearPost();
     }
   };
@@ -407,9 +434,36 @@ const CreatePost: React.FC<CreatePostProps> = ({ currentUser, onPostCreate, onSh
         </div>
       )}
 
+      {/* Poll Preview */}
+      {pollQuestion.trim() && (
+        <div className="relative mb-3 p-3.5 bg-purple-50/70 dark:bg-purple-950/40 rounded-xl border border-purple-200 dark:border-purple-800/60 animate-fadeIn">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-1.5 text-purple-700 dark:text-purple-300 font-bold text-sm">
+              <BarChart2 className="w-4 h-4" />
+              <span>{pollQuestion}</span>
+            </div>
+            <button 
+              onClick={() => { setPollQuestion(''); setPollOptions(['', '']); }}
+              className="p-1 hover:bg-purple-200 dark:hover:bg-purple-800 rounded-full text-purple-700 dark:text-purple-300 transition"
+              title={language === 'ar' ? 'إلغاء الاستطلاع' : 'Remove poll'}
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="space-y-1.5">
+            {pollOptions.filter(o => o.trim()).map((opt, i) => (
+              <div key={i} className="bg-white dark:bg-gray-800 px-3 py-1.5 rounded-lg border border-purple-100 dark:border-purple-900 text-xs font-medium text-gray-800 dark:text-gray-200 flex items-center justify-between">
+                <span>{opt}</span>
+                <span className="text-purple-600 dark:text-purple-400 text-[11px]">0%</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Action Buttons Bar */}
-      <div className="border-t border-gray-200 dark:border-gray-700 pt-3 flex items-center justify-between flex-wrap gap-y-2">
-        <div className="flex flex-wrap items-center gap-1 sm:gap-2 w-full pb-1">
+      <div className="border-t border-gray-200 dark:border-gray-700 pt-3 flex items-center justify-between">
+        <div className="flex items-center gap-1 sm:gap-2 w-full overflow-x-auto pb-1 no-scrollbar scrollbar-none">
           
           <button 
             onClick={() => setShowLiveModal(true)}
@@ -417,7 +471,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ currentUser, onPostCreate, onSh
             title={t.post_live_video}
           >
             <Video className="h-5 w-5 text-red-500" />
-            <span className="text-gray-600 dark:text-gray-300 font-medium text-xs sm:text-sm inline">{t.post_live_video}</span>
+            <span className="text-gray-600 dark:text-gray-300 font-medium text-xs sm:text-sm whitespace-nowrap">{t.post_live_video}</span>
           </button>
           
           <button 
@@ -426,7 +480,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ currentUser, onPostCreate, onSh
             title={t.post_photo_video}
           >
             <Image className="h-5 w-5 text-emerald-600" />
-            <span className="text-gray-600 dark:text-gray-300 font-medium text-xs sm:text-sm inline">{t.post_photo_video}</span>
+            <span className="text-gray-600 dark:text-gray-300 font-medium text-xs sm:text-sm whitespace-nowrap">{t.post_photo_video}</span>
             <input 
               type="file" 
               ref={fileInputRef} 
@@ -442,7 +496,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ currentUser, onPostCreate, onSh
             title={t.post_feeling_activity}
           >
             <Smile className="h-5 w-5 text-yellow-500" />
-            <span className="text-gray-600 dark:text-gray-300 font-medium text-xs sm:text-sm inline">{t.post_feeling_activity}</span>
+            <span className="text-gray-600 dark:text-gray-300 font-medium text-xs sm:text-sm whitespace-nowrap">{t.post_feeling_activity}</span>
           </button>
 
           <button 
@@ -451,7 +505,7 @@ const CreatePost: React.FC<CreatePostProps> = ({ currentUser, onPostCreate, onSh
             title={t.post_tag_button}
           >
             <UserPlus className="h-5 w-5 text-blue-500" />
-            <span className="text-gray-600 dark:text-gray-300 font-medium text-xs sm:text-sm inline">{t.post_tag_button}</span>
+            <span className="text-gray-600 dark:text-gray-300 font-medium text-xs sm:text-sm whitespace-nowrap">{t.post_tag_button}</span>
           </button>
 
           <button 
@@ -460,20 +514,31 @@ const CreatePost: React.FC<CreatePostProps> = ({ currentUser, onPostCreate, onSh
             title={t.post_location_button}
           >
             <MapPin className="h-5 w-5 text-orange-500" />
-            <span className="text-gray-600 dark:text-gray-300 font-medium text-xs sm:text-sm inline">{t.post_location_button}</span>
+            <span className="text-gray-600 dark:text-gray-300 font-medium text-xs sm:text-sm whitespace-nowrap">{t.post_location_button}</span>
           </button>
 
-           <button 
-            onClick={handleMagicPost}
-            disabled={isGenerating}
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-colors flex-shrink-0 ${isGenerating ? 'bg-purple-100 dark:bg-purple-900/40' : 'hover:bg-purple-50 dark:hover:bg-purple-900/20'}`}
-            title={t.post_magic_ai}
-          >
-            <Sparkles className={`h-5 w-5 text-purple-600 dark:text-purple-400 ${isGenerating ? 'animate-spin' : ''}`} />
-            <span className="text-purple-600 dark:text-purple-400 font-medium text-xs sm:text-sm inline">
-                {isGenerating ? t.post_ai_thinking : t.post_magic_ai}
-            </span>
-          </button>
+          <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+            <button 
+              onClick={() => setShowPollModal(true)}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg transition-colors flex-shrink-0"
+              title={language === 'ar' ? 'استطلاع رأي' : 'Poll'}
+            >
+              <BarChart2 className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+              <span className="text-gray-600 dark:text-gray-300 font-medium text-xs sm:text-sm whitespace-nowrap">{language === 'ar' ? 'استطلاع رأي' : 'Poll'}</span>
+            </button>
+
+            <button 
+              onClick={handleMagicPost}
+              disabled={isGenerating}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-colors flex-shrink-0 ${isGenerating ? 'bg-purple-100 dark:bg-purple-900/40' : 'hover:bg-purple-50 dark:hover:bg-purple-900/20'}`}
+              title={t.post_magic_ai}
+            >
+              <Sparkles className={`h-5 w-5 text-purple-600 dark:text-purple-400 ${isGenerating ? 'animate-spin' : ''}`} />
+              <span className="text-purple-600 dark:text-purple-400 font-medium text-xs sm:text-sm whitespace-nowrap">
+                  {isGenerating ? t.post_ai_thinking : t.post_magic_ai}
+              </span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -491,8 +556,8 @@ const CreatePost: React.FC<CreatePostProps> = ({ currentUser, onPostCreate, onSh
       )}
 
       {/* --- Live Video Modal --- */}
-      {showLiveModal && (
-          <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 animate-fadeIn backdrop-blur-sm">
+      {showLiveModal && createPortal(
+          <div className="fixed inset-0 bg-black/80 z-[99999] flex items-center justify-center p-4 animate-fadeIn backdrop-blur-sm">
               <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden animate-scaleIn border border-gray-200 dark:border-gray-700">
                   <div className="p-4 border-b dark:border-gray-700 flex justify-between items-center bg-white dark:bg-gray-800">
                       <h3 className="font-bold text-lg flex items-center gap-2 dark:text-white">
@@ -531,12 +596,13 @@ const CreatePost: React.FC<CreatePostProps> = ({ currentUser, onPostCreate, onSh
                       </div>
                   </div>
               </div>
-          </div>
+          </div>,
+          document.body
       )}
 
       {/* --- Feeling Modal --- */}
-      {showFeelingModal && (
-          <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 animate-fadeIn backdrop-blur-sm">
+      {showFeelingModal && createPortal(
+          <div className="fixed inset-0 bg-black/60 z-[99999] flex items-center justify-center p-4 animate-fadeIn backdrop-blur-sm">
               <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md overflow-hidden h-[500px] flex flex-col animate-scaleIn">
                   <div className="p-4 border-b dark:border-gray-700 flex justify-between items-center">
                       <h3 className="font-bold text-lg dark:text-white">{t.post_feeling_activity}</h3>
@@ -561,12 +627,13 @@ const CreatePost: React.FC<CreatePostProps> = ({ currentUser, onPostCreate, onSh
                       </div>
                   </div>
               </div>
-          </div>
+          </div>,
+          document.body
       )}
 
       {/* --- Tag Friends Modal --- */}
-      {showTagModal && (
-          <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 animate-fadeIn backdrop-blur-sm">
+      {showTagModal && createPortal(
+          <div className="fixed inset-0 bg-black/60 z-[99999] flex items-center justify-center p-4 animate-fadeIn backdrop-blur-sm">
               <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-sm overflow-hidden animate-scaleIn">
                   <div className="p-4 border-b dark:border-gray-700 flex justify-between items-center">
                       <h3 className="font-bold text-lg dark:text-white">{t.post_tag_button}</h3>
@@ -601,12 +668,13 @@ const CreatePost: React.FC<CreatePostProps> = ({ currentUser, onPostCreate, onSh
                       <button onClick={() => setShowTagModal(false)} className={`${THEME_CONFIG.BG} text-white px-6 py-1.5 rounded-md text-sm font-semibold transition hover:opacity-90`}>{t.common_done || 'Done'}</button>
                   </div>
               </div>
-          </div>
+          </div>,
+          document.body
       )}
 
       {/* --- Location Modal --- */}
-      {showLocationModal && (
-          <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 animate-fadeIn backdrop-blur-sm">
+      {showLocationModal && createPortal(
+          <div className="fixed inset-0 bg-black/60 z-[99999] flex items-center justify-center p-4 animate-fadeIn backdrop-blur-sm">
               <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-sm overflow-hidden animate-scaleIn">
                   <div className="p-4 border-b dark:border-gray-700 flex justify-between items-center">
                       <h3 className="font-bold text-lg dark:text-white">{t.post_location_button}</h3>
@@ -636,7 +704,96 @@ const CreatePost: React.FC<CreatePostProps> = ({ currentUser, onPostCreate, onSh
                       ))}
                   </div>
               </div>
-          </div>
+          </div>,
+          document.body
+      )}
+
+      {/* --- Poll Modal --- */}
+      {showPollModal && createPortal(
+          <div className="fixed inset-0 bg-black/60 z-[99999] flex items-center justify-center p-4 animate-fadeIn backdrop-blur-sm">
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md overflow-hidden animate-scaleIn border border-gray-100 dark:border-gray-700">
+                  <div className="p-4 border-b dark:border-gray-700 flex justify-between items-center bg-purple-50/50 dark:bg-purple-950/20">
+                      <div className="flex items-center gap-2">
+                        <BarChart2 className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                        <h3 className="font-bold text-lg dark:text-white">{language === 'ar' ? 'إنشاء استطلاع رأي' : 'Create a Poll'}</h3>
+                      </div>
+                      <button onClick={() => setShowPollModal(false)} className="bg-gray-100 dark:bg-gray-700 p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 transition"><X className="w-5 h-5 dark:text-white" /></button>
+                  </div>
+                  <div className="p-4 space-y-4">
+                      <div>
+                        <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
+                          {language === 'ar' ? 'سؤال الاستطلاع' : 'Poll Question'}
+                        </label>
+                        <input 
+                          type="text"
+                          value={pollQuestion}
+                          onChange={(e) => setPollQuestion(e.target.value)}
+                          placeholder={language === 'ar' ? 'ما رأيك في...' : 'Ask a question...'}
+                          className="w-full bg-gray-100 dark:bg-gray-700 rounded-lg p-2.5 text-sm outline-none border border-gray-200 dark:border-gray-600 focus:border-purple-500 text-gray-900 dark:text-white"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="block text-xs font-bold text-gray-700 dark:text-gray-300">
+                          {language === 'ar' ? 'خيارات التصويت' : 'Options'}
+                        </label>
+                        {pollOptions.map((option, idx) => (
+                          <div key={idx} className="flex items-center gap-2">
+                            <input 
+                              type="text"
+                              value={option}
+                              onChange={(e) => {
+                                const newOpts = [...pollOptions];
+                                newOpts[idx] = e.target.value;
+                                setPollOptions(newOpts);
+                              }}
+                              placeholder={`${language === 'ar' ? 'الخيار' : 'Option'} ${idx + 1}`}
+                              className="flex-1 bg-gray-100 dark:bg-gray-700 rounded-lg p-2 text-sm outline-none border border-gray-200 dark:border-gray-600 focus:border-purple-500 text-gray-900 dark:text-white"
+                            />
+                            {pollOptions.length > 2 && (
+                              <button 
+                                onClick={() => setPollOptions(pollOptions.filter((_, i) => i !== idx))}
+                                className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg transition"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                        {pollOptions.length < 4 && (
+                          <button 
+                            onClick={() => setPollOptions([...pollOptions, ''])}
+                            className="flex items-center gap-1.5 text-xs font-semibold text-purple-600 dark:text-purple-400 hover:underline pt-1"
+                          >
+                            <Plus className="w-4 h-4" />
+                            {language === 'ar' ? 'إضافة خيار آخر' : 'Add Option'}
+                          </button>
+                        )}
+                      </div>
+                  </div>
+                  <div className="p-3 border-t dark:border-gray-700 flex justify-end gap-2 bg-gray-50 dark:bg-gray-800/50">
+                    <button 
+                      onClick={() => setShowPollModal(false)}
+                      className="px-4 py-2 rounded-lg text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 font-semibold"
+                    >
+                      {language === 'ar' ? 'إلغاء' : 'Cancel'}
+                    </button>
+                    <button 
+                      onClick={() => {
+                        if (!pollQuestion.trim() || pollOptions.filter(o => o.trim()).length < 2) {
+                          setErrorMsg(language === 'ar' ? 'يرجى كتابة السؤال وخيارين على الأقل' : 'Please provide a question and at least two options');
+                          return;
+                        }
+                        setShowPollModal(false);
+                      }}
+                      className="bg-purple-600 hover:bg-purple-700 text-white px-5 py-2 rounded-lg text-sm font-semibold transition shadow-sm"
+                    >
+                      {language === 'ar' ? 'حفظ الاستطلاع' : 'Save Poll'}
+                    </button>
+                  </div>
+              </div>
+          </div>,
+          document.body
       )}
     </div>
   );

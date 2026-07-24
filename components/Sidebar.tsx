@@ -44,6 +44,7 @@ interface SidebarProps {
   currentUser: User;
   onProfileClick: () => void;
   onNavigate: (view: View) => void;
+  onOpenReels?: () => void;
 }
 
 // Unified interface for shortcuts
@@ -252,7 +253,7 @@ const getAllPossibleShortcuts = (t: Record<string, string>, language: string): S
   return [...actionItems, ...groupItems, ...pageItems, ...gameItems];
 };
 
-const Sidebar: React.FC<SidebarProps> = ({ currentUser, onProfileClick, onNavigate }) => {
+const Sidebar: React.FC<SidebarProps> = ({ currentUser, onProfileClick, onNavigate, onOpenReels }) => {
   const { t, language, dir } = useLanguage();
   const [isExpanded, setIsExpanded] = useState(false);
   
@@ -395,6 +396,23 @@ const Sidebar: React.FC<SidebarProps> = ({ currentUser, onProfileClick, onNaviga
           />
           <span className="font-semibold text-[15px] text-gray-900 dark:text-gray-100 group-hover:text-black dark:group-hover:text-white transition-colors truncate">{currentUser.name}</span>
         </li>
+
+        {/* Reels Dedicated Quick Launcher */}
+        {onOpenReels && (
+          <li 
+            className="flex items-center gap-3 p-2 hover:bg-gray-200 dark:hover:bg-gray-700/60 rounded-lg cursor-pointer transition-all duration-200 group active:scale-95"
+            onClick={onOpenReels}
+            role="button"
+            tabIndex={0}
+          >
+            <div className="flex items-center justify-center w-9 h-9 transition-transform duration-200 group-hover:scale-110 drop-shadow-sm">
+                <PlayCircle className="h-8 w-8 text-emerald-700 hover:text-blue-700 dark:text-emerald-400 dark:hover:text-blue-700 group-hover:text-blue-700 dark:group-hover:text-blue-700 transition-colors" />
+            </div>
+            <span className="font-medium text-[15px] text-gray-900 dark:text-gray-200 group-hover:text-black dark:group-hover:text-white transition-colors">
+                {language === 'ar' ? 'المقاطع القصيرة (Reels)' : 'Reels Shorts'}
+            </span>
+          </li>
+        )}
         
         {/* Dynamic Menu Items */}
         {visibleItems.map((item) => (

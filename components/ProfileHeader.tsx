@@ -233,11 +233,11 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           onToggleLockProfile();
       } else {
           setIsProfileLocked(!isProfileLocked);
+          notify(language === 'ar' ? 'تم قفل الملف الشخصي بنجاح' : 'Profile locked successfully', 'success');
       }
       setIsLocking(false);
       setShowLockModal(false);
       setShowSettingsMenu(false);
-      notify(language === 'ar' ? 'تم تغيير إعدادات خصوصية الملف الشخصي' : 'Profile privacy settings updated', 'success');
     }, 1000);
   };
 
@@ -385,7 +385,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                          {profileUser.online && <div className="w-3 h-3 bg-green-500 rounded-full border-2 border-white dark:border-gray-800 shadow-sm" title={t.common_online}></div>}
                          {isProfileLocked && (
                              <span title={language === 'ar' ? 'لقد قمت بقفل ملفك الشخصي' : 'You locked your profile'} className="flex items-center justify-center">
-                                <ShieldCheck className="w-6 h-6 text-fb-blue" />
+                                <ShieldCheck className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
                              </span>
                          )}
                      </h1>
@@ -447,7 +447,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                                         onClick={handleViewAs}
                                         className="w-full flex items-center gap-3 px-4 py-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 text-gray-700 dark:text-gray-200 transition text-sm font-medium group border-b border-gray-100 dark:border-gray-700/50"
                                     >
-                                        <Eye className="w-6 h-6 text-gray-500 group-hover:text-fb-blue group-hover:scale-110 transition" />
+                                        <Eye className="w-6 h-6 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition" />
                                         <div className="flex flex-col items-start">
                                             <span className="font-bold text-gray-900 dark:text-white">
                                                 {language === 'ar' ? 'عرض كما يظهر للآخرين' : 'View As'}
@@ -464,8 +464,8 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                                         className="w-full flex items-center gap-3 px-4 py-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 text-gray-700 dark:text-gray-200 transition text-sm font-medium group"
                                     >
                                         {isProfileLocked 
-                                            ? <ShieldCheck className="w-6 h-6 text-fb-blue group-hover:scale-110 transition" /> 
-                                            : <Lock className="w-6 h-6 text-gray-500 group-hover:text-fb-blue group-hover:scale-110 transition" />
+                                            ? <ShieldCheck className="w-6 h-6 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition" /> 
+                                            : <Lock className="w-6 h-6 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition" />
                                         }
                                         <div className="flex flex-col items-start">
                                             <span className="font-bold text-gray-900 dark:text-white">
@@ -638,8 +638,8 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 animate-fadeIn backdrop-blur-sm">
                 <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-sm overflow-hidden animate-scaleIn border border-gray-100 dark:border-gray-700">
                     <div className="p-6 flex flex-col items-center text-center">
-                        <div className="w-20 h-20 bg-blue-50 dark:bg-blue-900/20 rounded-full flex items-center justify-center mb-4">
-                            {isProfileLocked ? <ShieldCheck className="w-10 h-10 text-fb-blue" /> : <Shield className="w-10 h-10 text-fb-blue" />}
+                        <div className="w-20 h-20 bg-emerald-50 dark:bg-emerald-900/20 rounded-full flex items-center justify-center mb-4">
+                            {isProfileLocked ? <ShieldCheck className="w-10 h-10 text-emerald-600 dark:text-emerald-400" /> : <Shield className="w-10 h-10 text-emerald-600 dark:text-emerald-400" />}
                         </div>
                         <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
                             {isProfileLocked 

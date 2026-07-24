@@ -4,7 +4,8 @@ import {
   MessageCircle, Globe, Users, AtSign, Bell, BellOff, Share2, Download,
   UserCircle, Trash2, ThumbsUp, Send, Smile, ArrowRight, Check, UserPlus, Lock,
   Facebook, Twitter, Phone, Link as LinkIcon, Copy, Flag, AlertTriangle, Loader2,
-  AlertCircle, Pin, PinOff, Search, Clock, Cat, Coffee, Gamepad2, Plane, Lightbulb
+  AlertCircle, Pin, PinOff, Search, Clock, Cat, Coffee, Gamepad2, Plane, Lightbulb,
+  ZoomIn, ZoomOut, RotateCcw
 } from 'lucide-react';
 import { Photo, User, Post } from '../types';
 import { useLanguage } from '../context/LanguageContext';
@@ -133,6 +134,112 @@ const ProfileMediaLightbox: React.FC<ProfileMediaLightboxProps> = ({
   // Emoji Picker State
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [activeEmojiTab, setActiveEmojiTab] = useState<'recent' | keyof typeof EMOJI_CATEGORIES>('recent');
+
+  // Zoom & Pan & Mobile Swipe Down State
+  const [zoomScale, setZoomScale] = useState(1);
+  const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStartRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [touchStartY, setTouchStartY] = useState<number | null>(null);
+  const [touchCurrentY, setTouchCurrentY] = useState<number | null>(null);
+
+  useEffect(() => {
+    setZoomScale(1);
+    setPanOffset({ x: 0, y: 0 });
+  }, [viewingMedia?.url]);
+
+  const handleZoomIn = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setZoomScale(prev => Math.min(prev + 0.5, 4));
+  };
+
+  const handleZoomOut = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setZoomScale(prev => {
+      const next = Math.max(prev - 0.5, 1);
+      if (next === 1) setPanOffset({ x: 0, y: 0 });
+      return next;
+    });
+  };
+
+  const handleResetZoom = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setZoomScale(1);
+    setPanOffset({ x: 0, y: 0 });
+  };
+
+  const handleImageDoubleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (zoomScale > 1) {
+      handleResetZoom();
+    } else {
+      setZoomScale(2);
+    }
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (zoomScale > 1) {
+      if (e.touches.length === 1) {
+        setIsDragging(true);
+        dragStartRef.current = {
+          x: e.touches[0].clientX - panOffset.x,
+          y: e.touches[0].clientY - panOffset.y,
+        };
+      }
+      return;
+    }
+    setTouchStartY(e.touches[0].clientY);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (zoomScale > 1 && isDragging) {
+      const x = e.touches[0].clientX - dragStartRef.current.x;
+      const y = e.touches[0].clientY - dragStartRef.current.y;
+      setPanOffset({ x, y });
+      return;
+    }
+    if (touchStartY !== null) {
+      const deltaY = e.touches[0].clientY - touchStartY;
+      if (deltaY > 0) {
+        setTouchCurrentY(deltaY);
+      }
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (isDragging) {
+      setIsDragging(false);
+    }
+    if (zoomScale === 1 && touchCurrentY !== null && touchCurrentY > 100) {
+      onClose();
+    }
+    setTouchStartY(null);
+    setTouchCurrentY(null);
+  };
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (zoomScale > 1) {
+      e.preventDefault();
+      setIsDragging(true);
+      dragStartRef.current = {
+        x: e.clientX - panOffset.x,
+        y: e.clientY - panOffset.y,
+      };
+    }
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (isDragging && zoomScale > 1) {
+      setPanOffset({
+        x: e.clientX - dragStartRef.current.x,
+        y: e.clientY - dragStartRef.current.y,
+      });
+    }
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
   const [emojiSearch, setEmojiSearch] = useState('');
   const [recentEmojis, setRecentEmojis] = useState<string[]>([]);
 
@@ -392,7 +499,23 @@ const ProfileMediaLightbox: React.FC<ProfileMediaLightboxProps> = ({
        <div className="w-full h-full flex flex-col md:flex-row overflow-hidden">
            
            {/* Media Display */}
-           <div className="flex-1 bg-black flex items-center justify-center relative group" onClick={(e) => e.stopPropagation()}>
+           <div 
+                className="flex-1 bg-black flex items-center justify-center relative group overflow-hidden select-none" 
+                onClick={(e) => e.stopPropagation()}
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
+                onMouseDown={handleMouseDown}
+                onMouseMove={handleMouseMove}
+                onMouseUp={handleMouseUp}
+                onMouseLeave={handleMouseUp}
+                style={{
+                    transform: touchCurrentY ? `translateY(${touchCurrentY}px)` : undefined,
+                    transition: touchCurrentY ? 'none' : 'transform 0.2s ease-out'
+                }}
+            >
+                {/* Drag handle for mobile swipe down hint */}
+                <div className="absolute top-2 left-1/2 -translate-x-1/2 w-12 h-1.5 bg-white/40 rounded-full md:hidden z-[103]"></div>
                 
                 <button className="absolute top-4 left-4 p-2 bg-black/50 hover:bg-white/20 rounded-full text-white z-[102]" onClick={onClose}>
                     <X className="w-6 h-6" />
@@ -402,6 +525,41 @@ const ProfileMediaLightbox: React.FC<ProfileMediaLightboxProps> = ({
                     <button className="absolute right-4 top-1/2 -translate-y-1/2 p-3 bg-black/50 hover:bg-white/20 rounded-full text-white z-10 transition hover:scale-110" onClick={onPrev}>
                         <ChevronRight className="w-8 h-8" />
                     </button>
+                )}
+
+                {/* Floating Zoom Bar */}
+                {viewingMedia.type === 'image' && (
+                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/70 backdrop-blur-md px-3 py-1.5 rounded-full flex items-center gap-2 text-white z-[103] shadow-lg border border-white/20 opacity-90 hover:opacity-100 transition">
+                        <button 
+                            type="button"
+                            onClick={handleZoomOut}
+                            disabled={zoomScale <= 1}
+                            className="p-1.5 hover:bg-white/20 rounded-full disabled:opacity-30 disabled:cursor-not-allowed transition"
+                            title={language === 'ar' ? 'تصغير' : 'Zoom Out'}
+                        >
+                            <ZoomOut className="w-4 h-4" />
+                        </button>
+                        <span className="text-xs font-bold w-12 text-center select-none">{Math.round(zoomScale * 100)}%</span>
+                        <button 
+                            type="button"
+                            onClick={handleZoomIn}
+                            disabled={zoomScale >= 4}
+                            className="p-1.5 hover:bg-white/20 rounded-full disabled:opacity-30 disabled:cursor-not-allowed transition"
+                            title={language === 'ar' ? 'تكبير' : 'Zoom In'}
+                        >
+                            <ZoomIn className="w-4 h-4" />
+                        </button>
+                        {zoomScale > 1 && (
+                            <button 
+                                type="button"
+                                onClick={handleResetZoom}
+                                className="p-1.5 hover:bg-white/20 rounded-full transition text-blue-400 hover:text-blue-300"
+                                title={language === 'ar' ? 'إعادة ضبط' : 'Reset'}
+                            >
+                                <RotateCcw className="w-4 h-4" />
+                            </button>
+                        )}
+                    </div>
                 )}
 
                 {viewingMedia.type === 'video' ? (
@@ -414,8 +572,13 @@ const ProfileMediaLightbox: React.FC<ProfileMediaLightboxProps> = ({
                 ) : (
                    <img 
                       src={viewingMedia.url} 
-                      className="w-full h-full object-contain" 
+                      className={`w-full h-full object-contain transition-transform duration-100 ${isDragging ? 'cursor-grabbing' : zoomScale > 1 ? 'cursor-grab' : 'cursor-pointer'}`}
                       alt="Full screen" 
+                      onDoubleClick={handleImageDoubleClick}
+                      style={{
+                          transform: `scale(${zoomScale}) translate(${panOffset.x / zoomScale}px, ${panOffset.y / zoomScale}px)`,
+                          transformOrigin: 'center center'
+                      }}
                    />
                 )}
 

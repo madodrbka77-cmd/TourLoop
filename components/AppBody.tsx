@@ -58,6 +58,8 @@ interface AppBodyProps {
   onToggleViewAs: () => void;
   isViewAsMode?: boolean;
   showNotification: (message: string, type?: 'success' | 'info' | 'error') => void;
+  handleVotePoll?: (postId: string, optionId: string) => void;
+  onOpenReels?: () => void;
 }
 
 const AppBody: React.FC<AppBodyProps> = ({
@@ -70,7 +72,8 @@ const AppBody: React.FC<AppBodyProps> = ({
   handleUpdateAvatar, handleUpdateCover, isGlobalLoading = false,
   handleProfileUpdate, showNotification,
   /* Fix: Added missing props from interface to destructuring */
-  onToggleLockProfile, onToggleViewAs, isViewAsMode
+  onToggleLockProfile, onToggleViewAs, isViewAsMode,
+  handleVotePoll, onOpenReels
 }) => {
   const { dir } = useLanguage();
 
@@ -88,6 +91,7 @@ const AppBody: React.FC<AppBodyProps> = ({
             currentUser={currentUser} 
             onProfileClick={handleProfileClick} 
             onNavigate={(view) => setView(view)} 
+            onOpenReels={onOpenReels}
         />
       )}
       
@@ -108,6 +112,7 @@ const AppBody: React.FC<AppBodyProps> = ({
               onComment={syncComment}
               onDeleteComment={syncDeleteComment}
               onLikeComment={syncLikeComment}
+              onVotePoll={handleVotePoll}
               onUpdateAvatar={handleUpdateAvatar}
               onProfileClick={handleProfileClick}
               onFriendClick={handleFriendClick}

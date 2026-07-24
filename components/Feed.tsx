@@ -6,7 +6,7 @@ import PostCard from './PostCard';
 import StoryReel, { UserStoryGroup } from './StoryReel';
 import StoryViewer from './StoryViewer';
 import ProfileMediaLightbox from './ProfileMediaLightbox';
-import { Image as ImageIcon } from 'lucide-react';
+import { Image as ImageIcon, Hash, Search, X } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { useNotify } from '../context/NotificationContext';
 
@@ -24,6 +24,7 @@ interface FeedProps {
   onComment?: (postId: string, text: string) => void;
   onDeleteComment?: (postId: string, commentId: string) => void;
   onLikeComment?: (postId: string, commentId: string) => void;
+  onVotePoll?: (postId: string, optionId: string) => void;
   onUpdateAvatar?: (url: string) => void;
   onProfileClick?: () => void;
   onFriendClick?: (user: User) => void;
@@ -92,13 +93,19 @@ const Feed: React.FC<FeedProps> = ({
     onComment, 
     onDeleteComment,
     onLikeComment,
+    onVotePoll,
     onUpdateAvatar,
     onProfileClick,
     onFriendClick,
     isLoading = false
 }) => {
-  const { t, dir } = useLanguage();
+  const { t, dir, language } = useLanguage();
   const notify = useNotify();
+
+  // Active Hashtag and Search States
+  const [activeHashtag, setActiveHashtag] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const POPULAR_HASHTAGS = ['الجميع', 'اخبار', 'تقنية', 'ترفيه', 'رياضة', 'تصوير'];
   
   // Ref to track last notification to prevent duplicates (Debouncing)
   const lastNotificationRef = useRef<{ message: string; timestamp: number } | null>(null);
@@ -219,9 +226,25 @@ const Feed: React.FC<FeedProps> = ({
 
   const safePosts = Array.isArray(posts) ? posts : [];
 
+  const filteredPosts = useMemo(() => {
+    let result = safePosts;
+    if (activeHashtag) {
+      const cleanTag = activeHashtag.startsWith('#') ? activeHashtag.substring(1) : activeHashtag;
+      result = result.filter(p => p.content && p.content.includes(cleanTag));
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      result = result.filter(p => 
+        p.content?.toLowerCase().includes(q) || 
+        p.author.name.toLowerCase().includes(q)
+      );
+    }
+    return result;
+  }, [safePosts, activeHashtag, searchQuery]);
+
   return (
     <div 
-        className="flex-1 max-w-[880px] mx-auto py-4 md:py-6 px-4 md:px-8 min-h-screen animate-fadeIn bg-white/40 dark:bg-gray-800/40 backdrop-md border-x border-white/20 dark:border-gray-700/50 shadow-sm transition-all duration-300"
+        className="flex-1 max-w-[1000px] mx-auto py-4 md:py-6 px-4 md:px-8 min-h-screen animate-fadeIn bg-white/40 dark:bg-gray-800/40 backdrop-md border-x border-white/20 dark:border-gray-700/50 shadow-sm transition-all duration-300"
         dir={dir}
     >
       <style>{`
@@ -243,6 +266,70 @@ const Feed: React.FC<FeedProps> = ({
         onViewStory={setViewingStoryGroupIndex}
       />
 
+      {/* Hashtags & Advanced Search Bar */}
+      <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl shadow-sm p-3 mb-4 border border-emerald-100/60 dark:border-gray-700/60">
+        <div className="flex items-center justify-between gap-2 flex-wrap mb-1">
+          <div className="flex items-center gap-1.5 overflow-x-auto custom-scrollbar py-1 text-xs font-semibold">
+            <span className="text-gray-500 dark:text-gray-400 font-bold flex items-center gap-1">
+              <Hash className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+              {language === 'ar' ? 'الوسوم الشائعة:' : 'Trending:'}
+            </span>
+            {POPULAR_HASHTAGS.map(tag => {
+              const fullTag = `#${tag}`;
+              const isActive = activeHashtag === fullTag;
+              return (
+                <button
+                  key={tag}
+                  onClick={() => setActiveHashtag(isActive ? null : fullTag)}
+                  className={`px-2.5 py-1 rounded-full border transition whitespace-nowrap ${
+                    isActive 
+                      ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm font-bold' 
+                      : 'bg-emerald-50/60 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 border-emerald-200/60 dark:border-emerald-800/50 hover:bg-emerald-100 dark:hover:bg-emerald-900/50'
+                  }`}
+                >
+                  {fullTag}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="relative flex-1 min-w-[180px] sm:max-w-[240px]">
+            <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 rtl:right-2.5 ltr:left-2.5" />
+            <input 
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder={language === 'ar' ? "بحث في المنشورات..." : "Search posts..."}
+              className="w-full bg-gray-100 dark:bg-gray-700/70 rounded-lg text-xs py-1.5 rtl:pr-8 rtl:pl-3 ltr:pl-8 ltr:pr-3 outline-none text-gray-800 dark:text-gray-200 border border-transparent focus:border-emerald-500 transition"
+            />
+            {searchQuery && (
+              <button 
+                onClick={() => setSearchQuery('')}
+                className="absolute left-2 top-1/2 -translate-y-1/2 rtl:left-2 ltr:right-2 text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Active Hashtag Banner */}
+        {activeHashtag && (
+          <div className="flex items-center justify-between bg-emerald-100/70 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-200 px-3 py-1.5 rounded-lg text-xs font-bold animate-fadeIn mt-2">
+            <span className="flex items-center gap-1.5">
+              <Search className="w-3.5 h-3.5" />
+              {language === 'ar' ? `تصفية حسب الوسم: ${activeHashtag} (${filteredPosts.length} منشورات)` : `Filtering by hashtag: ${activeHashtag} (${filteredPosts.length} posts)`}
+            </span>
+            <button 
+              onClick={() => setActiveHashtag(null)}
+              className="p-0.5 hover:bg-emerald-200 dark:hover:bg-emerald-800 rounded-full transition"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
+      </div>
+
       {/* Create Post Component */}
       <CreatePost currentUser={currentUser} onPostCreate={onPostCreate} onProfileClick={onProfileClick} />
       
@@ -254,8 +341,8 @@ const Feed: React.FC<FeedProps> = ({
                 <SkeletonPost />
                 <SkeletonPost />
               </>
-          ) : safePosts.length > 0 ? (
-              safePosts.map(post => (
+          ) : filteredPosts.length > 0 ? (
+              filteredPosts.map(post => (
                 <PostCard 
                     key={post.id} 
                     post={post} 
@@ -267,6 +354,8 @@ const Feed: React.FC<FeedProps> = ({
                     onComment={onComment}
                     onDeleteComment={onDeleteComment}
                     onLikeComment={onLikeComment}
+                    onVotePoll={onVotePoll}
+                    onHashtagClick={(tag) => setActiveHashtag(tag)}
                     onMediaClick={handleViewMedia}
                     isSaved={savedPhotos.some(p => p.id === post.id)}
                     onSetProfilePicture={onUpdateAvatar}

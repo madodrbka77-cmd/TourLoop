@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Post, User, Comment, VideoItem } from '../types';
+import { Post, User, Comment, VideoItem, Poll } from '../types';
 import { initialPosts, generateId } from '../data/initialData';
 import { formatDuration } from '../utils/formatters';
 import { safeSetItem } from '../utils/safeStorage';
 import { playAudio } from '../utils/audio';
+import { sendWebPushNotification } from '../utils/webPush';
 
 /* Fix: Implemented usePosts hook to manage feed state, persistence, and post interactions */
 export const usePosts = (
@@ -23,7 +24,7 @@ export const usePosts = (
     safeSetItem('tourloop_main_posts', JSON.stringify(prunedPosts));
   }, [posts]);
 
-  const handleCreatePost = (content: string, image?: string, skipPhotoAdd: boolean = false, forcedId?: string) => {
+  const handleCreatePost = (content: string, image?: string, skipPhotoAdd: boolean = false, forcedId?: string, poll?: Poll) => {
     const postId = forcedId || generateId();
     const newPost: Post = {
       id: postId,
@@ -34,7 +35,8 @@ export const usePosts = (
       likes: 0,
       comments: [],
       shares: 0,
-      isPinned: false
+      isPinned: false,
+      poll: poll
     };
 
     setPosts(prev => {
@@ -137,6 +139,13 @@ export const usePosts = (
         replies: []
     };
 
+    // Trigger Web Push Notification for comment interaction
+    sendWebPushNotification('تعليق جديد على المنشور', {
+      body: `${currentUser.name}: ${text.substring(0, 60)}`,
+      icon: currentUser.avatar,
+      tag: `comment-${postId}`
+    });
+
     setPosts(prev => prev.map(p => {
         if (p.id !== postId) return p;
         if (parentCommentId) {
@@ -209,6 +218,48 @@ export const usePosts = (
     }));
   };
 
+  const handleVotePoll = (postId: string, optionId: string) => {
+    playAudio('like');
+    setPosts(prev => prev.map(p => {
+      if (p.id !== postId || !p.poll) return p;
+      const currentPoll = p.poll;
+      const previousVotedOptionId = currentPoll.userVotedOptionId;
+      if (previousVotedOptionId === optionId) {
+        return p;
+      }
+
+      const updatedOptions = currentPoll.options.map(opt => {
+        if (opt.id === optionId) {
+          return {
+            ...opt,
+            votes: opt.votes + 1,
+            voters: [...(opt.voters || []), currentUser.id]
+          };
+        }
+        if (previousVotedOptionId && opt.id === previousVotedOptionId) {
+          return {
+            ...opt,
+            votes: Math.max(0, opt.votes - 1),
+            voters: (opt.voters || []).filter(id => id !== currentUser.id)
+          };
+        }
+        return opt;
+      });
+
+      const newTotalVotes = updatedOptions.reduce((acc, curr) => acc + curr.votes, 0);
+
+      return {
+        ...p,
+        poll: {
+          ...currentPoll,
+          options: updatedOptions,
+          totalVotes: newTotalVotes,
+          userVotedOptionId: optionId
+        }
+      };
+    }));
+  };
+
   return {
     posts,
     setPosts,
@@ -218,6 +269,7 @@ export const usePosts = (
     handlePostLike,
     handlePostComment,
     handleDeletePostComment,
-    handleLikePostComment
+    handleLikePostComment,
+    handleVotePoll
   };
 };

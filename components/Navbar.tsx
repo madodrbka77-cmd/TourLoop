@@ -10,6 +10,7 @@ import {
 import { View, User } from '../types';
 import { useLanguage } from '../context/LanguageContext';
 import { useTheme } from '../context/ThemeContext';
+import { usePushNotification } from '../context/NotificationContext';
 
 interface NavbarProps {
   currentView: View;
@@ -91,6 +92,18 @@ const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onProfileClick, c
   const [activeTab, setActiveTab] = useState<View>(currentView);
   const { language, setLanguage, t, dir } = useLanguage();
   const { theme, toggleTheme } = useTheme();
+  const { pushPermission, requestPushPermission, notifyPush } = usePushNotification();
+
+  const handleToggleWebPush = async () => {
+    if (pushPermission === 'granted') {
+      notifyPush('إشعارات المتصفح الفورية', 'إشعارات المتصفح (Web Push) مفعلة وتعمل بنجاح! 🔔');
+    } else {
+      const perm = await requestPushPermission();
+      if (perm === 'granted') {
+        notifyPush('تم تفعيل الإشعارات الفورية', 'ستصلك الآن تنبيهات المتصفح فور استلام رسائل أو تفاعلات جديدة! 🚀');
+      }
+    }
+  };
   
   // --- Feature States ---
   // Search
@@ -1070,6 +1083,28 @@ const Navbar: React.FC<NavbarProps> = ({ currentView, setView, onProfileClick, c
                                     {/* Toggle Switch Visual */}
                                     <div className={`w-10 h-6 rounded-full p-1 transition-colors duration-300 ${theme === 'dark' ? 'bg-emerald-600' : 'bg-gray-300'}`}>
                                         <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-300 ${theme === 'dark' ? 'translate-x-0' : dir === 'rtl' ? '-translate-x-4' : 'translate-x-4'}`}></div>
+                                    </div>
+                                </button>
+
+                                <button 
+                                    onClick={handleToggleWebPush}
+                                    className="w-full flex items-center justify-between p-3 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition group"
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <div className="bg-emerald-100 dark:bg-emerald-900/40 p-2 rounded-full text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition">
+                                            <Bell className="w-5 h-5" />
+                                        </div>
+                                        <div className="flex flex-col items-start">
+                                            <span className="font-medium text-gray-800 dark:text-gray-200">
+                                                إشعارات المتصفح الفورية (Web Push)
+                                            </span>
+                                            <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+                                                {pushPermission === 'granted' ? 'مفعلة وتعمل ✅' : 'انقر لتفعيل التنبيهات 🔔'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div className={`w-10 h-6 rounded-full p-1 transition-colors duration-300 ${pushPermission === 'granted' ? 'bg-emerald-600' : 'bg-gray-300'}`}>
+                                        <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-300 ${pushPermission === 'granted' ? 'translate-x-0' : dir === 'rtl' ? '-translate-x-4' : 'translate-x-4'}`}></div>
                                     </div>
                                 </button>
 
