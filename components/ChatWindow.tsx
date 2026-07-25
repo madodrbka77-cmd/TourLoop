@@ -57,28 +57,75 @@ interface ChatWindowProps {
 interface Theme {
   name: string;
   id: string;
+  category?: 'all' | 'love' | 'geometric' | 'nature' | 'celebration' | 'gradients' | 'classic';
   background: string;
+  bgImage?: string;
+  bgStyle?: React.CSSProperties;
   bubble: string;
   sentTextColor?: string;
 }
+
+export const getThemeBgStyle = (theme?: Theme): React.CSSProperties => {
+  if (!theme) return {};
+  if (theme.bgStyle) return theme.bgStyle;
+  if (theme.bgImage) {
+    return {
+      backgroundImage: `url('${theme.bgImage}')`,
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      backgroundRepeat: 'no-repeat',
+    };
+  }
+  return {};
+};
 
 // --- Constants & Data ---
 const CHAT_WIDTH = 338;
 const CHAT_GAP = 8;
 
-const getThemes = (lang: string) => [
-  { name: lang === 'ar' ? 'افتراضي' : 'Default', id: 'default', background: 'bg-white dark:bg-gray-900', bubble: 'bg-blue-600' },
-  { name: lang === 'ar' ? 'محيط' : 'Ocean', id: 'ocean', background: 'bg-gradient-to-b from-blue-50 to-blue-100 dark:from-gray-900 dark:to-blue-900/20', bubble: 'bg-cyan-600' },
-  { name: lang === 'ar' ? 'حب' : 'Love', id: 'love', background: 'bg-gradient-to-br from-pink-50 via-red-50 to-pink-100 dark:from-pink-900/20 dark:via-red-900/20 dark:to-pink-900/10', bubble: 'bg-pink-500' },
-  { name: lang === 'ar' ? 'صداقة' : 'Friendship', id: 'friendship', background: 'bg-gradient-to-tr from-yellow-50 via-orange-50 to-blue-50 dark:from-yellow-900/20 dark:via-orange-900/20 dark:to-blue-900/20', bubble: 'bg-indigo-500' },
-  { name: lang === 'ar' ? 'هدوء' : 'Tranquility', id: 'tranquility', background: 'bg-gradient-to-b from-teal-50 to-emerald-50 dark:from-teal-900/20 dark:to-emerald-900/20', bubble: 'bg-teal-600' },
-  { name: lang === 'ar' ? 'غروب' : 'Sunset', id: 'sunset', background: 'bg-gradient-to-b from-orange-50 to-pink-50 dark:from-gray-900 dark:to-red-900/20', bubble: 'bg-orange-600' },
-  { name: lang === 'ar' ? 'توت' : 'Berry', id: 'berry', background: 'bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-gray-900 dark:to-purple-900/20', bubble: 'bg-purple-600' },
-  { name: lang === 'ar' ? 'غابة' : 'Forest', id: 'forest', background: 'bg-gradient-to-b from-green-50 to-emerald-50 dark:from-gray-900 dark:to-green-900/20', bubble: 'bg-emerald-600' },
-  { name: lang === 'ar' ? 'ليلي' : 'Midnight', id: 'midnight', background: 'bg-gray-100 dark:bg-gray-800', bubble: 'bg-gray-800 dark:bg-gray-600' },
-  { name: lang === 'ar' ? 'مجرة' : 'Galaxy', id: 'galaxy', background: 'bg-gradient-to-br from-indigo-900 via-purple-900 to-black', bubble: 'bg-indigo-500' },
-  { name: lang === 'ar' ? 'صبغ' : 'Tie Dye', id: 'tie_dye', background: 'bg-gradient-to-r from-pink-100 via-purple-100 to-indigo-100 dark:from-pink-900/20 dark:via-purple-900/20 dark:to-indigo-900/20', bubble: 'bg-violet-600' },
-  { name: lang === 'ar' ? 'أرض' : 'Earth', id: 'earth', background: 'bg-gradient-to-b from-stone-50 to-stone-100 dark:from-stone-900 dark:to-stone-800', bubble: 'bg-stone-600' },
+const getThemes = (lang: string): Theme[] => [
+  // --- Love & Romance (حب وقلوب ❤️) ---
+  { name: lang === 'ar' ? 'قلوب النيون' : 'Neon Hearts', id: 'love_hearts', category: 'love', background: 'bg-gray-900', bgImage: 'https://images.unsplash.com/photo-1518199266791-5375a83190b7?q=80&w=800&auto=format&fit=crop', bubble: 'bg-pink-600' },
+  { name: lang === 'ar' ? 'ورود حمراء' : 'Red Roses', id: 'love_roses', category: 'love', background: 'bg-rose-950', bgImage: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=800&auto=format&fit=crop', bubble: 'bg-rose-600' },
+  { name: lang === 'ar' ? 'حب ورومانسية' : 'Love & Romance', id: 'love', category: 'love', background: 'bg-gradient-to-br from-pink-50 via-red-50 to-pink-100 dark:from-pink-900/20 dark:via-red-900/20 dark:to-pink-900/10', bubble: 'bg-pink-500' },
+  { name: lang === 'ar' ? 'غروب حالم' : 'Romantic Sunset', id: 'love_romantic_sunset', category: 'love', background: 'bg-red-900', bgImage: 'https://images.unsplash.com/photo-1518895949257-7621c3c786d7?q=80&w=800&auto=format&fit=crop', bubble: 'bg-red-500' },
+  { name: lang === 'ar' ? 'سماء وردية' : 'Pink Sky', id: 'love_pink_cloud', category: 'love', background: 'bg-pink-100', bgImage: 'https://images.unsplash.com/photo-1534447677768-be436bb09401?q=80&w=800&auto=format&fit=crop', bubble: 'bg-rose-500' },
+
+  // --- Geometric Patterns (أشكال هندسية 📐) ---
+  { name: lang === 'ar' ? 'شبكة هيكس الرقمية' : 'Cyber Hexagon', id: 'geo_hex', category: 'geometric', background: 'bg-gray-900', bgImage: 'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=800&auto=format&fit=crop', bubble: 'bg-cyan-600' },
+  { name: lang === 'ar' ? 'أمواج مجسمة' : '3D Fluid Waves', id: 'geo_waves', category: 'geometric', background: 'bg-slate-900', bgImage: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=800&auto=format&fit=crop', bubble: 'bg-violet-600' },
+  { name: lang === 'ar' ? 'رخام ذهبي' : 'Golden Marble', id: 'geo_gold', category: 'geometric', background: 'bg-neutral-900', bgImage: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?q=80&w=800&auto=format&fit=crop', bubble: 'bg-amber-600' },
+  { name: lang === 'ar' ? 'كريستال منشور' : 'Prismatic Crystal', id: 'geo_cubes', category: 'geometric', background: 'bg-slate-900', bgImage: 'https://images.unsplash.com/photo-1508739773434-c26b3d09e071?q=80&w=800&auto=format&fit=crop', bubble: 'bg-indigo-600' },
+  { name: lang === 'ar' ? 'شبكة النيون' : 'Neon Grid', id: 'geo_neon_grid', category: 'geometric', background: 'bg-purple-950', bgImage: 'https://images.unsplash.com/photo-1509198397868-475647b2a1e5?q=80&w=800&auto=format&fit=crop', bubble: 'bg-fuchsia-600' },
+
+  // --- Nature & Astronomy (طبيعة وسحر 🌌) ---
+  { name: lang === 'ar' ? 'مجرة ونجوم' : 'Starry Galaxy', id: 'galaxy', category: 'nature', background: 'bg-black', bgImage: 'https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?q=80&w=800&auto=format&fit=crop', bubble: 'bg-indigo-600' },
+  { name: lang === 'ar' ? 'شاطئ استوائي' : 'Tropical Beach', id: 'ocean_beach', category: 'nature', background: 'bg-sky-900', bgImage: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=800&auto=format&fit=crop', bubble: 'bg-blue-600' },
+  { name: lang === 'ar' ? 'أزهار الكرز' : 'Cherry Blossom', id: 'sakura', category: 'nature', background: 'bg-pink-900', bgImage: 'https://images.unsplash.com/photo-1522383225653-ed111181a951?q=80&w=800&auto=format&fit=crop', bubble: 'bg-pink-600' },
+  { name: lang === 'ar' ? 'ضباب الغابة' : 'Mist Forest', id: 'forest_mist', category: 'nature', background: 'bg-emerald-950', bgImage: 'https://images.unsplash.com/photo-1448375240586-882707db888b?q=80&w=800&auto=format&fit=crop', bubble: 'bg-emerald-600' },
+  { name: lang === 'ar' ? 'جبال القمر' : 'Moonlight Mountains', id: 'mountain_night', category: 'nature', background: 'bg-slate-900', bgImage: 'https://images.unsplash.com/photo-1519681393784-d120267933ba?q=80&w=800&auto=format&fit=crop', bubble: 'bg-cyan-700' },
+
+  // --- Celebrations & Events (مناسبات واحتفالات 🎆) ---
+  { name: lang === 'ar' ? 'أضواء الاحتفال' : 'Party Lights', id: 'celebration_lights', category: 'celebration', background: 'bg-purple-950', bgImage: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?q=80&w=800&auto=format&fit=crop', bubble: 'bg-purple-600' },
+  { name: lang === 'ar' ? 'ألعاب نارية' : 'Fireworks Night', id: 'fireworks', category: 'celebration', background: 'bg-black', bgImage: 'https://images.unsplash.com/photo-1498931299472-f7a63a5a1cfa?q=80&w=800&auto=format&fit=crop', bubble: 'bg-amber-500' },
+  { name: lang === 'ar' ? 'ليالي الهلال' : 'Crescent Night', id: 'crescent_moon', category: 'celebration', background: 'bg-indigo-950', bgImage: 'https://images.unsplash.com/photo-1532693322450-2cb5c511067d?q=80&w=800&auto=format&fit=crop', bubble: 'bg-sky-600' },
+  { name: lang === 'ar' ? 'بريق ذهبي' : 'Golden Shimmer', id: 'golden_glitter', category: 'celebration', background: 'bg-amber-950', bgImage: 'https://images.unsplash.com/photo-1531685250784-7569952593d2?q=80&w=800&auto=format&fit=crop', bubble: 'bg-amber-600' },
+
+  // --- Modern Gradients (تدرجات فاخرة 🌈) ---
+  { name: lang === 'ar' ? 'سايبر بوينت' : 'Cyber Neon', id: 'neon_cyber', category: 'gradients', background: 'bg-indigo-950', bgImage: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=800&auto=format&fit=crop', bubble: 'bg-fuchsia-600' },
+  { name: lang === 'ar' ? 'الشفق القطبي' : 'Aurora Borealis', id: 'aurora', category: 'gradients', background: 'bg-teal-950', bgImage: 'https://images.unsplash.com/photo-1531366936337-7c912a4589a7?q=80&w=800&auto=format&fit=crop', bubble: 'bg-teal-600' },
+
+  // --- Classic Themes (كلاسيكي وألوان 🎨) ---
+  { name: lang === 'ar' ? 'افتراضي' : 'Default', id: 'default', category: 'classic', background: 'bg-white dark:bg-gray-900', bubble: 'bg-blue-600' },
+  { name: lang === 'ar' ? 'محيط' : 'Ocean', id: 'ocean', category: 'classic', background: 'bg-gradient-to-b from-blue-50 to-blue-100 dark:from-gray-900 dark:to-blue-900/20', bubble: 'bg-cyan-600' },
+  { name: lang === 'ar' ? 'صداقة' : 'Friendship', id: 'friendship', category: 'classic', background: 'bg-gradient-to-tr from-yellow-50 via-orange-50 to-blue-50 dark:from-yellow-900/20 dark:via-orange-900/20 dark:to-blue-900/20', bubble: 'bg-indigo-500' },
+  { name: lang === 'ar' ? 'هدوء' : 'Tranquility', id: 'tranquility', category: 'classic', background: 'bg-gradient-to-b from-teal-50 to-emerald-50 dark:from-teal-900/20 dark:to-emerald-900/20', bubble: 'bg-teal-600' },
+  { name: lang === 'ar' ? 'غروب' : 'Sunset', id: 'sunset', category: 'classic', background: 'bg-gradient-to-b from-orange-50 to-pink-50 dark:from-gray-900 dark:to-red-900/20', bubble: 'bg-orange-600' },
+  { name: lang === 'ar' ? 'توت' : 'Berry', id: 'berry', category: 'classic', background: 'bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-gray-900 dark:to-purple-900/20', bubble: 'bg-purple-600' },
+  { name: lang === 'ar' ? 'غابة' : 'Forest', id: 'forest', category: 'classic', background: 'bg-gradient-to-b from-green-50 to-emerald-50 dark:from-gray-900 dark:to-green-900/20', bubble: 'bg-emerald-600' },
+  { name: lang === 'ar' ? 'ليلي' : 'Midnight', id: 'midnight', category: 'classic', background: 'bg-gray-100 dark:bg-gray-800', bubble: 'bg-gray-800 dark:bg-gray-600' },
+  { name: lang === 'ar' ? 'صبغ' : 'Tie Dye', id: 'tie_dye', category: 'classic', background: 'bg-gradient-to-r from-pink-100 via-purple-100 to-indigo-100 dark:from-pink-900/20 dark:via-purple-900/20 dark:to-indigo-900/20', bubble: 'bg-violet-600' },
+  { name: lang === 'ar' ? 'أرض' : 'Earth', id: 'earth', category: 'classic', background: 'bg-gradient-to-b from-stone-50 to-stone-100 dark:from-stone-900 dark:to-stone-800', bubble: 'bg-stone-600' },
 ];
 
 const EMOJI_CATEGORIES = {
@@ -429,6 +476,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose, currentUser, ind
 
   // Theme Preview State
   const [previewTheme, setPreviewTheme] = useState<Theme>(settings.theme);
+  const [selectedThemeCategory, setSelectedThemeCategory] = useState<string>('all');
 
   // File Upload State
   const [pendingMedia, setPendingMedia] = useState<PendingMedia | null>(null);
@@ -1520,52 +1568,92 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose, currentUser, ind
 
                       {activeModal === 'theme' && (
                           <div className="flex w-full h-full">
-                              <div className="w-1/2 bg-white dark:bg-gray-900 flex flex-col items-center justify-center border-l dark:border-gray-700 relative overflow-hidden">
+                              {/* Left Preview Side */}
+                              <div className="w-1/2 bg-white dark:bg-gray-900 flex flex-col items-center justify-center border-l dark:border-gray-700 relative overflow-hidden p-4">
                                   <div className="absolute inset-0 bg-gray-100 dark:bg-gray-800 pattern-grid opacity-10"></div>
-                                  <h4 className="relative z-10 mb-4 font-bold text-gray-500 uppercase tracking-widest text-xs">{language === 'ar' ? 'معاينة المظهر' : 'Theme Preview'}</h4>
-                                  <div className={`w-64 h-96 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col ${previewTheme.background}`}>
-                                      <div className="h-12 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm border-b dark:border-gray-700 flex items-center px-3 gap-2">
+                                  <h4 className="relative z-10 mb-3 font-bold text-gray-500 uppercase tracking-widest text-[11px]">{language === 'ar' ? 'معاينة المظهر' : 'Theme Preview'}</h4>
+                                  <div 
+                                      style={getThemeBgStyle(previewTheme)}
+                                      className={`w-64 h-96 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col relative bg-cover bg-center ${previewTheme.background}`}
+                                  >
+                                      {previewTheme.bgImage && <div className="absolute inset-0 bg-black/20 z-0 pointer-events-none" />}
+                                      <div className="h-12 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm border-b dark:border-gray-700 flex items-center px-3 gap-2 relative z-10">
                                           <div className="w-8 h-8 rounded-full bg-gray-300"></div>
                                           <div className="flex flex-col">
                                               <div className="w-20 h-2 bg-gray-300 rounded mb-1"></div>
                                               <div className="w-12 h-1.5 bg-gray-200 rounded"></div>
                                           </div>
                                       </div>
-                                      <div className="flex-1 p-3 flex flex-col justify-end space-y-3">
-                                          <div className="self-start bg-white dark:bg-gray-700 rounded-2xl rounded-bl-none px-3 py-2 max-w-[80%] shadow-sm text-xs text-gray-800 dark:text-gray-200">
+                                      <div className="flex-1 p-3 flex flex-col justify-end space-y-3 relative z-10">
+                                          <div className="self-start bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm rounded-2xl rounded-bl-none px-3 py-2 max-w-[80%] shadow-md text-xs text-gray-800 dark:text-gray-200">
                                               {language === 'ar' ? 'مرحباً، كيف حالك؟' : 'Hello, how are you?'}
                                           </div>
-                                          <div className={`self-end ${previewTheme.bubble} text-white rounded-2xl rounded-br-none px-3 py-2 max-w-[80%] shadow-sm text-xs`}>
+                                          <div className={`self-end ${previewTheme.bubble} text-white rounded-2xl rounded-br-none px-3 py-2 max-w-[80%] shadow-md text-xs`}>
                                               {language === 'ar' ? 'أنا بخير، شكراً لسؤالك! هذا المظهر رائع جداً.' : 'I am fine, thanks! This theme is awesome.'}
                                           </div>
                                       </div>
-                                      <div className="h-12 bg-white dark:bg-gray-800 border-t dark:border-gray-700 flex items-center px-2 gap-2">
+                                      <div className="h-12 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm border-t dark:border-gray-700 flex items-center px-2 gap-2 relative z-10">
                                           <div className="w-6 h-6 rounded-full bg-gray-200 dark:bg-gray-600"></div>
                                           <div className="flex-1 h-8 bg-gray-100 dark:bg-gray-700 rounded-full"></div>
                                           <div className={`w-6 h-6 rounded-full ${previewTheme.bubble}`}></div>
                                       </div>
                                   </div>
-                                  <p className="mt-4 font-bold text-lg text-gray-800 dark:text-white">{previewTheme.name}</p>
+                                  <p className="mt-3 font-bold text-base text-gray-800 dark:text-white flex items-center gap-2">
+                                      <span>{previewTheme.name}</span>
+                                      {previewTheme.bgImage && <span className="text-[10px] bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded-full font-semibold">{language === 'ar' ? 'خلفية صورة' : 'Photo Background'}</span>}
+                                  </p>
                               </div>
 
-                              <div className="w-1/2 bg-gray-50 dark:bg-gray-800 p-6 overflow-y-auto custom-scrollbar">
-                                  <h4 className="font-bold text-gray-900 dark:text-white mb-4">{language === 'ar' ? 'اختر مظهراً' : 'Choose a Theme'}</h4>
-                                  <div className="grid grid-cols-3 gap-4">
-                                      {THEMES.map(theme => (
-                                          <button 
-                                            key={theme.id} 
-                                            onClick={() => setPreviewTheme(theme)}
-                                            className={`aspect-square rounded-xl ${theme.background} shadow-md hover:scale-105 transition flex flex-col items-center justify-center relative overflow-hidden group border-2 ${previewTheme.id === theme.id ? 'border-emerald-500 ring-2 ring-emerald-200' : 'border-gray-200 dark:border-gray-600'}`}
+                              {/* Right Theme Selector Grid */}
+                              <div className="w-1/2 bg-gray-50 dark:bg-gray-800 p-5 flex flex-col h-full overflow-hidden">
+                                  <h4 className="font-bold text-gray-900 dark:text-white mb-3 text-sm flex-shrink-0">
+                                      {language === 'ar' ? 'اختر مظهراً خلفياً للدردشة' : 'Choose a Chat Background Theme'}
+                                  </h4>
+
+                                  {/* Category Tabs */}
+                                  <div className="flex items-center gap-1.5 overflow-x-auto pb-2 mb-3 no-scrollbar flex-shrink-0">
+                                      {[
+                                          { id: 'all', label: language === 'ar' ? 'الكل' : 'All' },
+                                          { id: 'love', label: language === 'ar' ? 'حب وقلوب ❤️' : 'Love ❤️' },
+                                          { id: 'geometric', label: language === 'ar' ? 'أشكال هندسية 📐' : 'Geometric 📐' },
+                                          { id: 'nature', label: language === 'ar' ? 'طبيعة وسحر 🌌' : 'Nature 🌌' },
+                                          { id: 'celebration', label: language === 'ar' ? 'مناسبات 🎆' : 'Celebrations 🎆' },
+                                          { id: 'gradients', label: language === 'ar' ? 'تدرجات 🌈' : 'Gradients 🌈' },
+                                          { id: 'classic', label: language === 'ar' ? 'كلاسيكي 🎨' : 'Classic 🎨' },
+                                      ].map(cat => (
+                                          <button
+                                              key={cat.id}
+                                              onClick={() => setSelectedThemeCategory(cat.id)}
+                                              className={`px-2.5 py-1 rounded-full text-[11px] font-bold whitespace-nowrap transition-all ${selectedThemeCategory === cat.id ? 'bg-emerald-600 text-white shadow-sm' : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 border border-gray-200 dark:border-gray-600'}`}
                                           >
-                                              <div className={`w-8 h-8 rounded-full ${theme.bubble} mb-2 shadow-sm`}></div>
-                                              <span className="bg-white/80 dark:bg-black/60 px-2 py-0.5 rounded text-[10px] font-bold backdrop-blur-sm">{theme.name}</span>
-                                              {settings.theme.id === theme.id && (
-                                                  <div className="absolute top-2 right-2 bg-emerald-500 text-white rounded-full p-0.5 shadow-sm">
-                                                      <Check className="w-3 h-3" />
-                                                  </div>
-                                              )}
+                                              {cat.label}
                                           </button>
                                       ))}
+                                  </div>
+
+                                  {/* Grid of Themes */}
+                                  <div className="flex-1 overflow-y-auto custom-scrollbar pr-1">
+                                      <div className="grid grid-cols-3 gap-3">
+                                          {(selectedThemeCategory === 'all' ? THEMES : THEMES.filter(t => t.category === selectedThemeCategory)).map(theme => (
+                                              <button 
+                                                key={theme.id} 
+                                                onClick={() => setPreviewTheme(theme)}
+                                                style={getThemeBgStyle(theme)}
+                                                className={`aspect-square rounded-xl ${theme.background} bg-cover bg-center shadow-md hover:scale-105 transition-all duration-200 flex flex-col items-center justify-end p-1.5 relative overflow-hidden group border-2 ${previewTheme.id === theme.id ? 'border-emerald-500 ring-2 ring-emerald-200 dark:ring-emerald-900/60' : 'border-gray-200 dark:border-gray-600'}`}
+                                              >
+                                                  {theme.bgImage && <div className="absolute inset-0 bg-black/25 group-hover:bg-black/10 transition-colors z-0" />}
+                                                  <div className={`w-6 h-6 rounded-full ${theme.bubble} mb-1 shadow-md relative z-10 border border-white/30`}></div>
+                                                  <span className="bg-black/60 text-white px-1.5 py-0.5 rounded text-[10px] font-bold backdrop-blur-sm relative z-10 text-center truncate max-w-full">
+                                                      {theme.name}
+                                                  </span>
+                                                  {settings.theme?.id === theme.id && (
+                                                      <div className="absolute top-1.5 right-1.5 bg-emerald-500 text-white rounded-full p-0.5 shadow-md z-20">
+                                                          <Check className="w-3 h-3" />
+                                                      </div>
+                                                  )}
+                                              </button>
+                                          ))}
+                                      </div>
                                   </div>
                               </div>
                           </div>
@@ -1737,10 +1825,10 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose, currentUser, ind
                                       setActiveModal(null);
                                       if (onViewProfile) onViewProfile(user);
                                   }}
-                                  className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition text-xs font-bold shadow-md hover:shadow-lg transform active:scale-95 my-2"
+                                  className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-emerald-600 hover:bg-blue-700 text-white rounded-xl transition text-xs font-bold shadow-md hover:shadow-lg transform active:scale-95 my-2"
                               >
                                   <UserCircle className="w-4 h-4" />
-                                  <span>{language === 'ar' ? 'عرض الملف الشخصي الكامل' : 'View Full Profile'}</span>
+                                  <span>{language === 'ar' ? 'عرض الملف الشخصي' : 'View Profile'}</span>
                               </button>
 
                               <div className="grid grid-cols-3 gap-2 w-full mt-1">
@@ -1811,19 +1899,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose, currentUser, ind
                           >
                               <ShieldBan className="w-4 h-4" /> {language === 'ar' ? 'حظر المستخدم' : 'Block User'}
                           </button>
-                          <div className="flex items-center gap-2">
-                              <button 
-                                onClick={() => {
-                                  setActiveModal(null);
-                                  if (onViewProfile) onViewProfile(user);
-                                }} 
-                                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition text-xs shadow flex items-center gap-1.5 transform active:scale-95"
-                              >
-                                  <UserCircle className="w-4 h-4" />
-                                  <span>{language === 'ar' ? 'عرض الملف الشخصي' : 'View Profile'}</span>
-                              </button>
-                              <button onClick={() => setActiveModal(null)} className="px-4 py-2 text-gray-700 dark:text-gray-200 font-bold hover:bg-gray-200 dark:hover:bg-gray-600 rounded-xl transition text-xs">{t.common_close}</button>
-                          </div>
+                          <button onClick={() => setActiveModal(null)} className="px-6 py-2 text-gray-700 dark:text-gray-200 font-bold hover:bg-gray-200 dark:hover:bg-gray-600 rounded-xl transition text-sm">{t.common_close}</button>
                       </div>
                   )}
 
@@ -1980,7 +2056,8 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose, currentUser, ind
       )}
 
       {/* Messages Area */}
-      <div ref={chatScrollRef} className={`flex-1 overflow-y-auto p-3 no-scrollbar relative ${settings.theme.background}`}>
+      <div ref={chatScrollRef} style={getThemeBgStyle(settings.theme)} className={`flex-1 overflow-y-auto p-3 no-scrollbar relative bg-cover bg-center ${settings.theme?.background || 'bg-white dark:bg-gray-900'}`}>
+        {settings.theme?.bgImage && <div className="absolute inset-0 bg-black/15 z-0 pointer-events-none" />}
         {/* Call Overlay */}
         {callStatus !== 'idle' && (
             <div className="absolute inset-0 bg-gray-900 z-30 flex flex-col items-center justify-center text-white overflow-hidden animate-fadeIn">
