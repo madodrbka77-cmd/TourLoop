@@ -57,7 +57,7 @@ interface ChatWindowProps {
 interface Theme {
   name: string;
   id: string;
-  category?: 'all' | 'love' | 'geometric' | 'nature' | 'celebration' | 'gradients' | 'classic';
+  category?: 'all' | 'messenger' | 'anime' | 'abstract' | 'sports' | 'pets' | 'love' | 'geometric' | 'nature' | 'space' | 'celebration' | 'cozy' | 'travel' | 'gradients' | 'classic';
   background: string;
   bgImage?: string;
   bgStyle?: React.CSSProperties;
@@ -84,38 +84,163 @@ const CHAT_WIDTH = 338;
 const CHAT_GAP = 8;
 
 const getThemes = (lang: string): Theme[] => [
-  // --- Love & Romance (حب وقلوب ❤️) ---
+  // ==================== 1. Messenger & Facebook Inspired (ماسنجر 💬) ====================
+  { name: lang === 'ar' ? 'ماسنجر البنفسجي' : 'Messenger Purple', id: 'messenger_purple', category: 'messenger', background: 'bg-indigo-950', bgImage: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=800&auto=format&fit=crop', bubble: 'bg-indigo-600' },
+  { name: lang === 'ar' ? 'فيسبوك بوب' : 'Facebook Pop', id: 'messenger_pop', category: 'messenger', background: 'bg-blue-950', bgImage: 'https://images.unsplash.com/photo-1579546929518-9e396f3cc809?q=80&w=800&auto=format&fit=crop', bubble: 'bg-blue-600' },
+  { name: lang === 'ar' ? 'الموجة الزرقاء' : 'Blue Wave', id: 'messenger_ocean', category: 'messenger', background: 'bg-sky-950', bgImage: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=800&auto=format&fit=crop', bubble: 'bg-cyan-600' },
+  { name: lang === 'ar' ? 'توت الماسنجر' : 'Messenger Berry', id: 'messenger_berry', category: 'messenger', background: 'bg-fuchsia-950', bgImage: 'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=800&auto=format&fit=crop', bubble: 'bg-fuchsia-600' },
+  { name: lang === 'ar' ? 'تدرج ماسنجر الوردي' : 'Messenger Pink Glow', id: 'messenger_pink', category: 'messenger', background: 'bg-pink-950', bgImage: 'https://images.unsplash.com/photo-1534447677768-be436bb09401?q=80&w=800&auto=format&fit=crop', bubble: 'bg-rose-500' },
+  { name: lang === 'ar' ? 'ماسنجر ليل داكن' : 'Messenger Dark Night', id: 'messenger_dark', category: 'messenger', background: 'bg-slate-950', bgImage: 'https://images.unsplash.com/photo-1519681393784-d120267933ba?q=80&w=800&auto=format&fit=crop', bubble: 'bg-indigo-500' },
+  { name: lang === 'ar' ? 'ماسنجر غروب الشمس' : 'Messenger Sunset Flare', id: 'messenger_sunset', category: 'messenger', background: 'bg-orange-950', bgImage: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=800&auto=format&fit=crop', bubble: 'bg-amber-600' },
+  { name: lang === 'ar' ? 'ماسنجر زمردي' : 'Messenger Emerald', id: 'messenger_emerald', category: 'messenger', background: 'bg-emerald-950', bgImage: 'https://images.unsplash.com/photo-1448375240586-882707db888b?q=80&w=800&auto=format&fit=crop', bubble: 'bg-emerald-600' },
+  { name: lang === 'ar' ? 'ماسنجر نيون سايبر' : 'Messenger Cyber Neon', id: 'messenger_neon', category: 'messenger', background: 'bg-purple-950', bgImage: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=800&auto=format&fit=crop', bubble: 'bg-violet-600' },
+  { name: lang === 'ar' ? 'ماسنجر سحري' : 'Messenger Magic Glow', id: 'messenger_magic', category: 'messenger', background: 'bg-blue-900', bgImage: 'https://images.unsplash.com/photo-1518199266791-5375a83190b7?q=80&w=800&auto=format&fit=crop', bubble: 'bg-sky-500' },
+
+  // ==================== 2. Anime & Fantasy (أنمي ⛩️) ====================
+  { name: lang === 'ar' ? 'أنمي سايبر' : 'Cyber Anime', id: 'anime_cyber', category: 'anime', background: 'bg-purple-950', bgImage: 'https://images.unsplash.com/photo-1578632767115-351597cf2477?q=80&w=800&auto=format&fit=crop', bubble: 'bg-purple-600' },
+  { name: lang === 'ar' ? 'ساكورا أنمي' : 'Anime Sakura', id: 'anime_cherry', category: 'anime', background: 'bg-pink-950', bgImage: 'https://images.unsplash.com/photo-1522383225653-ed111181a951?q=80&w=800&auto=format&fit=crop', bubble: 'bg-pink-500' },
+  { name: lang === 'ar' ? 'سماء الأنمي' : 'Anime Sky', id: 'anime_sky', category: 'anime', background: 'bg-amber-950', bgImage: 'https://images.unsplash.com/photo-1534447677768-be436bb09401?q=80&w=800&auto=format&fit=crop', bubble: 'bg-amber-600' },
+  { name: lang === 'ar' ? 'أضواء طوكيو' : 'Anime Tokyo Neon', id: 'anime_tokyo', category: 'anime', background: 'bg-indigo-950', bgImage: 'https://images.unsplash.com/photo-1503899036084-c55cdd92da26?q=80&w=800&auto=format&fit=crop', bubble: 'bg-fuchsia-600' },
+  { name: lang === 'ar' ? 'غابة أنمي السحرية' : 'Anime Enchanted Forest', id: 'anime_forest', category: 'anime', background: 'bg-emerald-950', bgImage: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=800&auto=format&fit=crop', bubble: 'bg-teal-600' },
+  { name: lang === 'ar' ? 'مطر الأنمي الدافئ' : 'Anime Rain Chill', id: 'anime_rain', category: 'anime', background: 'bg-slate-900', bgImage: 'https://images.unsplash.com/photo-1515694346937-94d85e41e6f0?q=80&w=800&auto=format&fit=crop', bubble: 'bg-sky-600' },
+  { name: lang === 'ar' ? 'قلعة أنمي الأسطورية' : 'Fantasy Anime Castle', id: 'anime_castle', category: 'anime', background: 'bg-indigo-900', bgImage: 'https://images.unsplash.com/photo-1519681393784-d120267933ba?q=80&w=800&auto=format&fit=crop', bubble: 'bg-indigo-600' },
+  { name: lang === 'ar' ? 'ليلة نجوم أنمي' : 'Anime Starlight', id: 'anime_stars', category: 'anime', background: 'bg-black', bgImage: 'https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?q=80&w=800&auto=format&fit=crop', bubble: 'bg-violet-600' },
+  { name: lang === 'ar' ? 'بوابة توريا اليابانية' : 'Japanese Torii Gate', id: 'anime_gate', category: 'anime', background: 'bg-red-950', bgImage: 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?q=80&w=800&auto=format&fit=crop', bubble: 'bg-red-600' },
+  { name: lang === 'ar' ? 'غروب أنمي الرومنسي' : 'Anime Romantic Sunset', id: 'anime_sunset', category: 'anime', background: 'bg-rose-950', bgImage: 'https://images.unsplash.com/photo-1518895949257-7621c3c786d7?q=80&w=800&auto=format&fit=crop', bubble: 'bg-rose-600' },
+
+  // ==================== 3. Abstract Art & Neon (تجريدي ونئون 🎨) ====================
+  { name: lang === 'ar' ? 'أمواج مجسمة' : '3D Fluid Waves', id: 'abstract_fluid', category: 'abstract', background: 'bg-slate-900', bgImage: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=800&auto=format&fit=crop', bubble: 'bg-violet-600' },
+  { name: lang === 'ar' ? 'رخام ذهبي' : 'Golden Marble', id: 'abstract_gold', category: 'abstract', background: 'bg-neutral-900', bgImage: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?q=80&w=800&auto=format&fit=crop', bubble: 'bg-amber-600' },
+  { name: lang === 'ar' ? 'شبكة النيون' : 'Neon Cyber', id: 'neon_cyber', category: 'abstract', background: 'bg-purple-950', bgImage: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=800&auto=format&fit=crop', bubble: 'bg-fuchsia-600' },
+  { name: lang === 'ar' ? 'رخام أسود' : 'Dark Marble', id: 'abstract_dark', category: 'abstract', background: 'bg-black', bgImage: 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?q=80&w=800&auto=format&fit=crop', bubble: 'bg-emerald-600' },
+  { name: lang === 'ar' ? 'كروم سائل' : 'Liquid Chrome', id: 'abstract_chrome', category: 'abstract', background: 'bg-gray-900', bgImage: 'https://images.unsplash.com/photo-1508739773434-c26b3d09e071?q=80&w=800&auto=format&fit=crop', bubble: 'bg-cyan-600' },
+  { name: lang === 'ar' ? 'حبر ملون تجريدي' : 'Abstract Color Ink', id: 'abstract_ink', category: 'abstract', background: 'bg-indigo-950', bgImage: 'https://images.unsplash.com/photo-1541701494587-cb58502866ab?q=80&w=800&auto=format&fit=crop', bubble: 'bg-pink-600' },
+  { name: lang === 'ar' ? 'أضواء منشور زجاجية' : 'Prismatic Glass', id: 'abstract_prism', category: 'abstract', background: 'bg-purple-900', bgImage: 'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=800&auto=format&fit=crop', bubble: 'bg-violet-500' },
+  { name: lang === 'ar' ? 'أمواج ضوئية رقمية' : 'Digital Light Waves', id: 'abstract_waves', category: 'abstract', background: 'bg-blue-950', bgImage: 'https://images.unsplash.com/photo-1509198397868-475647b2a1e5?q=80&w=800&auto=format&fit=crop', bubble: 'bg-blue-600' },
+  { name: lang === 'ar' ? 'هندسة تجريدية' : 'Abstract Geometry', id: 'abstract_geo', category: 'abstract', background: 'bg-stone-900', bgImage: 'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=800&auto=format&fit=crop', bubble: 'bg-amber-600' },
+  { name: lang === 'ar' ? 'دخان نيون ساحر' : 'Neon Smoke', id: 'abstract_smoke', category: 'abstract', background: 'bg-fuchsia-950', bgImage: 'https://images.unsplash.com/photo-1518199266791-5375a83190b7?q=80&w=800&auto=format&fit=crop', bubble: 'bg-fuchsia-600' },
+
+  // ==================== 4. Sports & Action (رياضة ⚽) ====================
+  { name: lang === 'ar' ? 'ملعب كرة القدم' : 'Soccer Stadium', id: 'sports_stadium', category: 'sports', background: 'bg-emerald-950', bgImage: 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?q=80&w=800&auto=format&fit=crop', bubble: 'bg-emerald-600' },
+  { name: lang === 'ar' ? 'كرة السلة' : 'Basketball Arena', id: 'sports_basketball', category: 'sports', background: 'bg-amber-950', bgImage: 'https://images.unsplash.com/photo-1546519638-68e109498ffc?q=80&w=800&auto=format&fit=crop', bubble: 'bg-orange-600' },
+  { name: lang === 'ar' ? 'سباق السرعة' : 'Motorsport Speed', id: 'sports_race', category: 'sports', background: 'bg-neutral-950', bgImage: 'https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?q=80&w=800&auto=format&fit=crop', bubble: 'bg-red-600' },
+  { name: lang === 'ar' ? 'ملعب التنس' : 'Tennis Court', id: 'sports_tennis', category: 'sports', background: 'bg-lime-950', bgImage: 'https://images.unsplash.com/photo-1595435934249-5df7ed86e1c0?q=80&w=800&auto=format&fit=crop', bubble: 'bg-lime-600' },
+  { name: lang === 'ar' ? 'ركوب الأمواج' : 'Ocean Surfing', id: 'sports_surf', category: 'sports', background: 'bg-sky-950', bgImage: 'https://images.unsplash.com/photo-1502680390469-be75c86b636f?q=80&w=800&auto=format&fit=crop', bubble: 'bg-cyan-600' },
+  { name: lang === 'ar' ? 'التزلج الجبلي' : 'Mountain Skiing', id: 'sports_ski', category: 'sports', background: 'bg-slate-900', bgImage: 'https://images.unsplash.com/photo-1551698618-1dfe5d97d256?q=80&w=800&auto=format&fit=crop', bubble: 'bg-sky-500' },
+  { name: lang === 'ar' ? 'حلبة الملاكمة' : 'Boxing Ring', id: 'sports_boxing', category: 'sports', background: 'bg-red-950', bgImage: 'https://images.unsplash.com/photo-1549719386-74dfcbf7dbed?q=80&w=800&auto=format&fit=crop', bubble: 'bg-red-600' },
+  { name: lang === 'ar' ? 'اللياقة البدنية' : 'Fitness Gym', id: 'sports_gym', category: 'sports', background: 'bg-zinc-900', bgImage: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?q=80&w=800&auto=format&fit=crop', bubble: 'bg-emerald-500' },
+  { name: lang === 'ar' ? 'سباق الدراجات' : 'Road Cycling', id: 'sports_cycling', category: 'sports', background: 'bg-stone-900', bgImage: 'https://images.unsplash.com/photo-1517649763962-0c623266010b?q=80&w=800&auto=format&fit=crop', bubble: 'bg-amber-600' },
+  { name: lang === 'ar' ? 'مضمار الجري' : 'Running Track', id: 'sports_running', category: 'sports', background: 'bg-red-900', bgImage: 'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?q=80&w=800&auto=format&fit=crop', bubble: 'bg-rose-600' },
+
+  // ==================== 5. Pets & Animals (حيوانات أليفة 🐾) ====================
+  { name: lang === 'ar' ? 'قطة لطيفة' : 'Cute Kitten', id: 'pets_kitten', category: 'pets', background: 'bg-rose-950', bgImage: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?q=80&w=800&auto=format&fit=crop', bubble: 'bg-rose-500' },
+  { name: lang === 'ar' ? 'كلب مرح' : 'Playful Dog', id: 'pets_puppy', category: 'pets', background: 'bg-amber-950', bgImage: 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?q=80&w=800&auto=format&fit=crop', bubble: 'bg-amber-600' },
+  { name: lang === 'ar' ? 'أسماك الزينة' : 'Aquarium Fish', id: 'pets_underwater', category: 'pets', background: 'bg-sky-950', bgImage: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?q=80&w=800&auto=format&fit=crop', bubble: 'bg-cyan-600' },
+  { name: lang === 'ar' ? 'أرنب لطيف' : 'Fluffy Bunny', id: 'pets_bunny', category: 'pets', background: 'bg-pink-950', bgImage: 'https://images.unsplash.com/photo-1585110396000-c9ffd4e4b308?q=80&w=800&auto=format&fit=crop', bubble: 'bg-pink-500' },
+  { name: lang === 'ar' ? 'ببغاء ملون' : 'Exotic Parrot', id: 'pets_parrot', category: 'pets', background: 'bg-emerald-950', bgImage: 'https://images.unsplash.com/photo-1552728089-57bdde30beb3?q=80&w=800&auto=format&fit=crop', bubble: 'bg-teal-600' },
+  { name: lang === 'ar' ? 'باندا محبوبة' : 'Cute Panda', id: 'pets_panda', category: 'pets', background: 'bg-slate-900', bgImage: 'https://images.unsplash.com/photo-1564349683136-77e08dba1ef9?q=80&w=800&auto=format&fit=crop', bubble: 'bg-emerald-600' },
+  { name: lang === 'ar' ? 'هامستر صغير' : 'Tiny Hamster', id: 'pets_hamster', category: 'pets', background: 'bg-amber-900', bgImage: 'https://images.unsplash.com/photo-1425082661705-1834bfd09dca?q=80&w=800&auto=format&fit=crop', bubble: 'bg-amber-500' },
+  { name: lang === 'ar' ? 'حصان أصيل' : 'Noble Horse', id: 'pets_horse', category: 'pets', background: 'bg-stone-950', bgImage: 'https://images.unsplash.com/photo-1553284965-83fd3e82fa5a?q=80&w=800&auto=format&fit=crop', bubble: 'bg-stone-600' },
+  { name: lang === 'ar' ? 'ثعلب لطيف' : 'Cute Fox', id: 'pets_fox', category: 'pets', background: 'bg-orange-950', bgImage: 'https://images.unsplash.com/photo-1474511320723-9a56873867b5?q=80&w=800&auto=format&fit=crop', bubble: 'bg-orange-600' },
+  { name: lang === 'ar' ? 'طيور الجنة' : 'Birds of Paradise', id: 'pets_birds', category: 'pets', background: 'bg-cyan-950', bgImage: 'https://images.unsplash.com/photo-1444464666168-49d633b86797?q=80&w=800&auto=format&fit=crop', bubble: 'bg-sky-500' },
+
+  // ==================== 6. Love & Romance (حب وقلوب ❤️) ====================
   { name: lang === 'ar' ? 'قلوب النيون' : 'Neon Hearts', id: 'love_hearts', category: 'love', background: 'bg-gray-900', bgImage: 'https://images.unsplash.com/photo-1518199266791-5375a83190b7?q=80&w=800&auto=format&fit=crop', bubble: 'bg-pink-600' },
   { name: lang === 'ar' ? 'ورود حمراء' : 'Red Roses', id: 'love_roses', category: 'love', background: 'bg-rose-950', bgImage: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=800&auto=format&fit=crop', bubble: 'bg-rose-600' },
+  { name: lang === 'ar' ? 'قلوب حالمة' : 'Dreamy Hearts', id: 'love_dreamy', category: 'love', background: 'bg-pink-950', bgImage: 'https://images.unsplash.com/photo-1530103862676-de8c9debad1d?q=80&w=800&auto=format&fit=crop', bubble: 'bg-pink-500' },
   { name: lang === 'ar' ? 'حب ورومانسية' : 'Love & Romance', id: 'love', category: 'love', background: 'bg-gradient-to-br from-pink-50 via-red-50 to-pink-100 dark:from-pink-900/20 dark:via-red-900/20 dark:to-pink-900/10', bubble: 'bg-pink-500' },
   { name: lang === 'ar' ? 'غروب حالم' : 'Romantic Sunset', id: 'love_romantic_sunset', category: 'love', background: 'bg-red-900', bgImage: 'https://images.unsplash.com/photo-1518895949257-7621c3c786d7?q=80&w=800&auto=format&fit=crop', bubble: 'bg-red-500' },
   { name: lang === 'ar' ? 'سماء وردية' : 'Pink Sky', id: 'love_pink_cloud', category: 'love', background: 'bg-pink-100', bgImage: 'https://images.unsplash.com/photo-1534447677768-be436bb09401?q=80&w=800&auto=format&fit=crop', bubble: 'bg-rose-500' },
+  { name: lang === 'ar' ? 'شموع رومانسية' : 'Candlelight', id: 'love_candles', category: 'love', background: 'bg-amber-950', bgImage: 'https://images.unsplash.com/photo-1602631985686-1bb0e6a8696e?q=80&w=800&auto=format&fit=crop', bubble: 'bg-rose-700' },
+  { name: lang === 'ar' ? 'العشاق في باريس' : 'Lovers in Paris', id: 'love_paris', category: 'love', background: 'bg-slate-900', bgImage: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?q=80&w=800&auto=format&fit=crop', bubble: 'bg-pink-600' },
+  { name: lang === 'ar' ? 'هدايا الحب' : 'Love Gifts', id: 'love_gifts', category: 'love', background: 'bg-red-950', bgImage: 'https://images.unsplash.com/photo-1513151233558-d860c5398176?q=80&w=800&auto=format&fit=crop', bubble: 'bg-rose-600' },
+  { name: lang === 'ar' ? 'شاطئ الرومانسية' : 'Romantic Sunset Beach', id: 'love_beach', category: 'love', background: 'bg-orange-950', bgImage: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=800&auto=format&fit=crop', bubble: 'bg-red-500' },
 
-  // --- Geometric Patterns (أشكال هندسية 📐) ---
-  { name: lang === 'ar' ? 'شبكة هيكس الرقمية' : 'Cyber Hexagon', id: 'geo_hex', category: 'geometric', background: 'bg-gray-900', bgImage: 'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=800&auto=format&fit=crop', bubble: 'bg-cyan-600' },
-  { name: lang === 'ar' ? 'أمواج مجسمة' : '3D Fluid Waves', id: 'geo_waves', category: 'geometric', background: 'bg-slate-900', bgImage: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=800&auto=format&fit=crop', bubble: 'bg-violet-600' },
-  { name: lang === 'ar' ? 'رخام ذهبي' : 'Golden Marble', id: 'geo_gold', category: 'geometric', background: 'bg-neutral-900', bgImage: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?q=80&w=800&auto=format&fit=crop', bubble: 'bg-amber-600' },
+  // ==================== 7. Geometric Patterns (أشكال هندسية 📐) ====================
+  { name: lang === 'ar' ? 'شبكة هيكس' : 'Cyber Hexagon', id: 'geo_hex', category: 'geometric', background: 'bg-gray-900', bgImage: 'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=800&auto=format&fit=crop', bubble: 'bg-cyan-600' },
   { name: lang === 'ar' ? 'كريستال منشور' : 'Prismatic Crystal', id: 'geo_cubes', category: 'geometric', background: 'bg-slate-900', bgImage: 'https://images.unsplash.com/photo-1508739773434-c26b3d09e071?q=80&w=800&auto=format&fit=crop', bubble: 'bg-indigo-600' },
-  { name: lang === 'ar' ? 'شبكة النيون' : 'Neon Grid', id: 'geo_neon_grid', category: 'geometric', background: 'bg-purple-950', bgImage: 'https://images.unsplash.com/photo-1509198397868-475647b2a1e5?q=80&w=800&auto=format&fit=crop', bubble: 'bg-fuchsia-600' },
+  { name: lang === 'ar' ? 'مكعبات ثلاثية' : '3D Cubes', id: 'geo_3d_cubes', category: 'geometric', background: 'bg-slate-950', bgImage: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=800&auto=format&fit=crop', bubble: 'bg-purple-600' },
+  { name: lang === 'ar' ? 'خطوط ذهبية' : 'Golden Lines', id: 'geo_gold', category: 'geometric', background: 'bg-neutral-900', bgImage: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?q=80&w=800&auto=format&fit=crop', bubble: 'bg-amber-600' },
+  { name: lang === 'ar' ? 'تضاريس لو-بولي' : 'Low Poly Terrain', id: 'geo_lowpoly', category: 'geometric', background: 'bg-indigo-950', bgImage: 'https://images.unsplash.com/photo-1509198397868-475647b2a1e5?q=80&w=800&auto=format&fit=crop', bubble: 'bg-indigo-500' },
+  { name: lang === 'ar' ? 'مثلثات النيون' : 'Neon Triangles', id: 'geo_triangles', category: 'geometric', background: 'bg-purple-950', bgImage: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=800&auto=format&fit=crop', bubble: 'bg-fuchsia-600' },
+  { name: lang === 'ar' ? 'شبكة ماتريكس' : 'Matrix Grid', id: 'geo_matrix', category: 'geometric', background: 'bg-black', bgImage: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?q=80&w=800&auto=format&fit=crop', bubble: 'bg-emerald-600' },
+  { name: lang === 'ar' ? 'مجسمات آيزومتريك' : 'Isometric Shapes', id: 'geo_isometric', category: 'geometric', background: 'bg-blue-950', bgImage: 'https://images.unsplash.com/photo-1579546929518-9e396f3cc809?q=80&w=800&auto=format&fit=crop', bubble: 'bg-blue-600' },
+  { name: lang === 'ar' ? 'دوائر هندسية' : 'Geometric Circles', id: 'geo_circles', category: 'geometric', background: 'bg-stone-900', bgImage: 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?q=80&w=800&auto=format&fit=crop', bubble: 'bg-amber-600' },
+  { name: lang === 'ar' ? 'أشعة ضوئية هندسية' : 'Geometric Light Rays', id: 'geo_rays', category: 'geometric', background: 'bg-cyan-950', bgImage: 'https://images.unsplash.com/photo-1518199266791-5375a83190b7?q=80&w=800&auto=format&fit=crop', bubble: 'bg-cyan-600' },
 
-  // --- Nature & Astronomy (طبيعة وسحر 🌌) ---
-  { name: lang === 'ar' ? 'مجرة ونجوم' : 'Starry Galaxy', id: 'galaxy', category: 'nature', background: 'bg-black', bgImage: 'https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?q=80&w=800&auto=format&fit=crop', bubble: 'bg-indigo-600' },
+  // ==================== 8. Nature & Landscapes (طبيعة وأزهار 🌿) ====================
   { name: lang === 'ar' ? 'شاطئ استوائي' : 'Tropical Beach', id: 'ocean_beach', category: 'nature', background: 'bg-sky-900', bgImage: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=800&auto=format&fit=crop', bubble: 'bg-blue-600' },
   { name: lang === 'ar' ? 'أزهار الكرز' : 'Cherry Blossom', id: 'sakura', category: 'nature', background: 'bg-pink-900', bgImage: 'https://images.unsplash.com/photo-1522383225653-ed111181a951?q=80&w=800&auto=format&fit=crop', bubble: 'bg-pink-600' },
   { name: lang === 'ar' ? 'ضباب الغابة' : 'Mist Forest', id: 'forest_mist', category: 'nature', background: 'bg-emerald-950', bgImage: 'https://images.unsplash.com/photo-1448375240586-882707db888b?q=80&w=800&auto=format&fit=crop', bubble: 'bg-emerald-600' },
   { name: lang === 'ar' ? 'جبال القمر' : 'Moonlight Mountains', id: 'mountain_night', category: 'nature', background: 'bg-slate-900', bgImage: 'https://images.unsplash.com/photo-1519681393784-d120267933ba?q=80&w=800&auto=format&fit=crop', bubble: 'bg-cyan-700' },
+  { name: lang === 'ar' ? 'شلال طبيعي' : 'Tropical Waterfall', id: 'nature_waterfall', category: 'nature', background: 'bg-teal-950', bgImage: 'https://images.unsplash.com/photo-1432405972618-c60b0225b8f9?q=80&w=800&auto=format&fit=crop', bubble: 'bg-teal-600' },
+  { name: lang === 'ar' ? 'خريف دافئ' : 'Warm Autumn', id: 'autumn_leaves', category: 'nature', background: 'bg-orange-950', bgImage: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=800&auto=format&fit=crop', bubble: 'bg-amber-600' },
+  { name: lang === 'ar' ? 'أزهار حقلية' : 'Wild Flowers', id: 'wild_flowers', category: 'nature', background: 'bg-emerald-900', bgImage: 'https://images.unsplash.com/photo-1490750967868-88aa4486c946?q=80&w=800&auto=format&fit=crop', bubble: 'bg-teal-600' },
+  { name: lang === 'ar' ? 'عباد الشمس' : 'Golden Sunflowers', id: 'nature_sunflowers', category: 'nature', background: 'bg-amber-950', bgImage: 'https://images.unsplash.com/photo-1470240731273-7821a6eeb6bd?q=80&w=800&auto=format&fit=crop', bubble: 'bg-amber-600' },
+  { name: lang === 'ar' ? 'أوراق استوائية' : 'Tropical Leaves', id: 'nature_leaves', category: 'nature', background: 'bg-emerald-950', bgImage: 'https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?q=80&w=800&auto=format&fit=crop', bubble: 'bg-emerald-600' },
+  { name: lang === 'ar' ? 'بحيرة جبلية' : 'Alpine Lake', id: 'nature_lake', category: 'nature', background: 'bg-blue-950', bgImage: 'https://images.unsplash.com/photo-1501785888041-af3ef285b470?q=80&w=800&auto=format&fit=crop', bubble: 'bg-sky-600' },
 
-  // --- Celebrations & Events (مناسبات واحتفالات 🎆) ---
+  // ==================== 9. Space & Galaxies (فضاء ومجرات 🚀) ====================
+  { name: lang === 'ar' ? 'مجرة ونجوم' : 'Starry Galaxy', id: 'galaxy', category: 'space', background: 'bg-black', bgImage: 'https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?q=80&w=800&auto=format&fit=crop', bubble: 'bg-indigo-600' },
+  { name: lang === 'ar' ? 'سديم كوني' : 'Cosmic Nebula', id: 'space_nebula', category: 'space', background: 'bg-black', bgImage: 'https://images.unsplash.com/photo-1462331940025-496dfbfc7564?q=80&w=800&auto=format&fit=crop', bubble: 'bg-purple-600' },
+  { name: lang === 'ar' ? 'سطح القمر' : 'Lunar Surface', id: 'space_moon', category: 'space', background: 'bg-slate-950', bgImage: 'https://images.unsplash.com/photo-1532693322450-2cb5c511067d?q=80&w=800&auto=format&fit=crop', bubble: 'bg-sky-600' },
+  { name: lang === 'ar' ? 'كواكب الفضاء' : 'Deep Cosmos', id: 'space_cosmos', category: 'space', background: 'bg-black', bgImage: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=800&auto=format&fit=crop', bubble: 'bg-blue-600' },
+  { name: lang === 'ar' ? 'رائد الفضاء' : 'Astronaut Spacewalk', id: 'space_astronaut', category: 'space', background: 'bg-black', bgImage: 'https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?q=80&w=800&auto=format&fit=crop', bubble: 'bg-cyan-600' },
+  { name: lang === 'ar' ? 'كوكب الأرض' : 'Earth from Space', id: 'space_earth', category: 'space', background: 'bg-blue-950', bgImage: 'https://images.unsplash.com/photo-1614728894747-a83421e2b9c9?q=80&w=800&auto=format&fit=crop', bubble: 'bg-blue-600' },
+  { name: lang === 'ar' ? 'حلقات زحل' : 'Saturn Rings', id: 'space_saturn', category: 'space', background: 'bg-neutral-950', bgImage: 'https://images.unsplash.com/photo-1614732414444-096e5f1122d5?q=80&w=800&auto=format&fit=crop', bubble: 'bg-amber-600' },
+  { name: lang === 'ar' ? 'انفجار نهمي' : 'Supernova Blast', id: 'space_supernova', category: 'space', background: 'bg-purple-950', bgImage: 'https://images.unsplash.com/photo-1502134249126-9f3755a50d78?q=80&w=800&auto=format&fit=crop', bubble: 'bg-fuchsia-600' },
+  { name: lang === 'ar' ? 'الثقب الأسود' : 'Cosmic Black Hole', id: 'space_blackhole', category: 'space', background: 'bg-black', bgImage: 'https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?q=80&w=800&auto=format&fit=crop', bubble: 'bg-violet-600' },
+  { name: lang === 'ar' ? 'مسارات النجوم' : 'Star Trails Night', id: 'space_startrails', category: 'space', background: 'bg-slate-950', bgImage: 'https://images.unsplash.com/photo-1519681393784-d120267933ba?q=80&w=800&auto=format&fit=crop', bubble: 'bg-indigo-500' },
+
+  // ==================== 10. Celebrations & Events (مناسبات واحتفالات 🎆) ====================
   { name: lang === 'ar' ? 'أضواء الاحتفال' : 'Party Lights', id: 'celebration_lights', category: 'celebration', background: 'bg-purple-950', bgImage: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?q=80&w=800&auto=format&fit=crop', bubble: 'bg-purple-600' },
   { name: lang === 'ar' ? 'ألعاب نارية' : 'Fireworks Night', id: 'fireworks', category: 'celebration', background: 'bg-black', bgImage: 'https://images.unsplash.com/photo-1498931299472-f7a63a5a1cfa?q=80&w=800&auto=format&fit=crop', bubble: 'bg-amber-500' },
   { name: lang === 'ar' ? 'ليالي الهلال' : 'Crescent Night', id: 'crescent_moon', category: 'celebration', background: 'bg-indigo-950', bgImage: 'https://images.unsplash.com/photo-1532693322450-2cb5c511067d?q=80&w=800&auto=format&fit=crop', bubble: 'bg-sky-600' },
   { name: lang === 'ar' ? 'بريق ذهبي' : 'Golden Shimmer', id: 'golden_glitter', category: 'celebration', background: 'bg-amber-950', bgImage: 'https://images.unsplash.com/photo-1531685250784-7569952593d2?q=80&w=800&auto=format&fit=crop', bubble: 'bg-amber-600' },
+  { name: lang === 'ar' ? 'بالونات ملونة' : 'Celebration Balloons', id: 'balloons', category: 'celebration', background: 'bg-pink-950', bgImage: 'https://images.unsplash.com/photo-1530103862676-de8c9debad1d?q=80&w=800&auto=format&fit=crop', bubble: 'bg-rose-500' },
+  { name: lang === 'ar' ? 'قصاصات الاحتفال' : 'Festive Confetti', id: 'celeb_confetti', category: 'celebration', background: 'bg-fuchsia-950', bgImage: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?q=80&w=800&auto=format&fit=crop', bubble: 'bg-fuchsia-600' },
+  { name: lang === 'ar' ? 'شرار ألعاب نارية' : 'Sparkler Fun', id: 'celeb_sparkles', category: 'celebration', background: 'bg-neutral-900', bgImage: 'https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?q=80&w=800&auto=format&fit=crop', bubble: 'bg-amber-500' },
+  { name: lang === 'ar' ? 'عيد ميلاد سعيد' : 'Birthday Party', id: 'celeb_birthday', category: 'celebration', background: 'bg-purple-900', bgImage: 'https://images.unsplash.com/photo-1513151233558-d860c5398176?q=80&w=800&auto=format&fit=crop', bubble: 'bg-pink-600' },
+  { name: lang === 'ar' ? 'أضواء الكرنفال' : 'Carnival Lights', id: 'celeb_carnival', category: 'celebration', background: 'bg-blue-950', bgImage: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?q=80&w=800&auto=format&fit=crop', bubble: 'bg-indigo-600' },
+  { name: lang === 'ar' ? 'أنخبة واحتفال' : 'Sparkling Celebration', id: 'celeb_cheers', category: 'celebration', background: 'bg-amber-950', bgImage: 'https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?q=80&w=800&auto=format&fit=crop', bubble: 'bg-amber-600' },
 
-  // --- Modern Gradients (تدرجات فاخرة 🌈) ---
-  { name: lang === 'ar' ? 'سايبر بوينت' : 'Cyber Neon', id: 'neon_cyber', category: 'gradients', background: 'bg-indigo-950', bgImage: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=800&auto=format&fit=crop', bubble: 'bg-fuchsia-600' },
+  // ==================== 11. Cozy & Coffee (قهوة واسترخاء ☕) ====================
+  { name: lang === 'ar' ? 'قهوة دافئة' : 'Warm Coffee', id: 'cozy_coffee', category: 'cozy', background: 'bg-stone-900', bgImage: 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?q=80&w=800&auto=format&fit=crop', bubble: 'bg-amber-700' },
+  { name: lang === 'ar' ? 'نافذة المطر' : 'Rainy Window', id: 'cozy_rain', category: 'cozy', background: 'bg-slate-900', bgImage: 'https://images.unsplash.com/photo-1515694346937-94d85e41e6f0?q=80&w=800&auto=format&fit=crop', bubble: 'bg-cyan-700' },
+  { name: lang === 'ar' ? 'مكتبة ودفء' : 'Cozy Library', id: 'cozy_books', category: 'cozy', background: 'bg-amber-950', bgImage: 'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?q=80&w=800&auto=format&fit=crop', bubble: 'bg-amber-800' },
+  { name: lang === 'ar' ? 'مدفأة هادئة' : 'Warm Fireplace', id: 'cozy_fireplace', category: 'cozy', background: 'bg-orange-950', bgImage: 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?q=80&w=800&auto=format&fit=crop', bubble: 'bg-orange-700' },
+  { name: lang === 'ar' ? 'شاي الأعشاب' : 'Herbal Tea', id: 'cozy_tea', category: 'cozy', background: 'bg-stone-900', bgImage: 'https://images.unsplash.com/photo-1576092768241-dec231879fc3?q=80&w=800&auto=format&fit=crop', bubble: 'bg-emerald-700' },
+  { name: lang === 'ar' ? 'كوخ الغابة' : 'Cabin in the Woods', id: 'cozy_cabin', category: 'cozy', background: 'bg-emerald-950', bgImage: 'https://images.unsplash.com/photo-1448375240586-882707db888b?q=80&w=800&auto=format&fit=crop', bubble: 'bg-emerald-700' },
+  { name: lang === 'ar' ? 'غطاء صوفي دافئ' : 'Warm Knit Blanket', id: 'cozy_blanket', category: 'cozy', background: 'bg-stone-800', bgImage: 'https://images.unsplash.com/photo-1513836279014-a89f7a76ae86?q=80&w=800&auto=format&fit=crop', bubble: 'bg-amber-700' },
+  { name: lang === 'ar' ? 'مخبز دافئ' : 'Warm Bakery', id: 'cozy_bakery', category: 'cozy', background: 'bg-amber-900', bgImage: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?q=80&w=800&auto=format&fit=crop', bubble: 'bg-amber-600' },
+  { name: lang === 'ar' ? 'شمعة الاسترخاء' : 'Relaxing Candle', id: 'cozy_candle', category: 'cozy', background: 'bg-neutral-900', bgImage: 'https://images.unsplash.com/photo-1602631985686-1bb0e6a8696e?q=80&w=800&auto=format&fit=crop', bubble: 'bg-amber-600' },
+  { name: lang === 'ar' ? 'شرفة الغروب' : 'Sunset Balcony Cafe', id: 'cozy_balcony', category: 'cozy', background: 'bg-rose-950', bgImage: 'https://images.unsplash.com/photo-1518895949257-7621c3c786d7?q=80&w=800&auto=format&fit=crop', bubble: 'bg-rose-600' },
+
+  // ==================== 12. Travel & Landmarks (سفر ومعالم ✈️) ====================
+  { name: lang === 'ar' ? 'باريس الساحرة' : 'Romantic Paris', id: 'travel_paris', category: 'travel', background: 'bg-slate-900', bgImage: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?q=80&w=800&auto=format&fit=crop', bubble: 'bg-blue-600' },
+  { name: lang === 'ar' ? 'أضواء طوكيو' : 'Tokyo Lights', id: 'travel_tokyo', category: 'travel', background: 'bg-purple-950', bgImage: 'https://images.unsplash.com/photo-1503899036084-c55cdd92da26?q=80&w=800&auto=format&fit=crop', bubble: 'bg-fuchsia-600' },
+  { name: lang === 'ar' ? 'قنوات البندقية' : 'Venice Canals', id: 'travel_venice', category: 'travel', background: 'bg-sky-950', bgImage: 'https://images.unsplash.com/photo-1514890547357-a9ee288728e0?q=80&w=800&auto=format&fit=crop', bubble: 'bg-teal-600' },
+  { name: lang === 'ar' ? 'نيويورك أفق' : 'New York Skyline', id: 'travel_ny', category: 'travel', background: 'bg-indigo-950', bgImage: 'https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?q=80&w=800&auto=format&fit=crop', bubble: 'bg-indigo-600' },
+  { name: lang === 'ar' ? 'الأهرامات العريقة' : 'Ancient Pyramids', id: 'travel_pyramids', category: 'travel', background: 'bg-amber-950', bgImage: 'https://images.unsplash.com/photo-1503177119275-0aa32b3a9368?q=80&w=800&auto=format&fit=crop', bubble: 'bg-amber-600' },
+  { name: lang === 'ar' ? 'كولوسيوم روما' : 'Rome Colosseum', id: 'travel_rome', category: 'travel', background: 'bg-stone-900', bgImage: 'https://images.unsplash.com/photo-1552832230-c0197dd311b5?q=80&w=800&auto=format&fit=crop', bubble: 'bg-amber-700' },
+  { name: lang === 'ar' ? 'سانتوريني اليونان' : 'Santorini Greece', id: 'travel_santorini', category: 'travel', background: 'bg-blue-900', bgImage: 'https://images.unsplash.com/photo-1570077188670-e3a8d69ac5ff?q=80&w=800&auto=format&fit=crop', bubble: 'bg-sky-500' },
+  { name: lang === 'ar' ? 'تاج محل الهند' : 'Taj Mahal India', id: 'travel_taj', category: 'travel', background: 'bg-rose-950', bgImage: 'https://images.unsplash.com/photo-1564507592333-c60657eea523?q=80&w=800&auto=format&fit=crop', bubble: 'bg-rose-600' },
+  { name: lang === 'ar' ? 'جبال الألب السويسرية' : 'Swiss Alps', id: 'travel_alps', category: 'travel', background: 'bg-slate-900', bgImage: 'https://images.unsplash.com/photo-1530122037265-a5f1f91d3b99?q=80&w=800&auto=format&fit=crop', bubble: 'bg-cyan-600' },
+  { name: lang === 'ar' ? 'طبيعة بالي الاستوائية' : 'Bali Tropical Paradise', id: 'travel_bali', category: 'travel', background: 'bg-emerald-950', bgImage: 'https://images.unsplash.com/photo-1537996194471-e657df975ab4?q=80&w=800&auto=format&fit=crop', bubble: 'bg-emerald-600' },
+
+  // ==================== 13. Modern Gradients (تدرجات 🌈) ====================
   { name: lang === 'ar' ? 'الشفق القطبي' : 'Aurora Borealis', id: 'aurora', category: 'gradients', background: 'bg-teal-950', bgImage: 'https://images.unsplash.com/photo-1531366936337-7c912a4589a7?q=80&w=800&auto=format&fit=crop', bubble: 'bg-teal-600' },
+  { name: lang === 'ar' ? 'طيف هولوجرام' : 'Hologram Spectrum', id: 'hologram', category: 'gradients', background: 'bg-purple-950', bgImage: 'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=800&auto=format&fit=crop', bubble: 'bg-violet-600' },
+  { name: lang === 'ar' ? 'تدرج الغروب' : 'Sunset Flare Gradient', id: 'grad_sunset', category: 'gradients', background: 'bg-gradient-to-br from-purple-900 via-rose-800 to-amber-700', bubble: 'bg-rose-500' },
+  { name: lang === 'ar' ? 'أعماق المحيط' : 'Ocean Deep Gradient', id: 'grad_ocean', category: 'gradients', background: 'bg-gradient-to-br from-blue-950 via-teal-900 to-emerald-950', bubble: 'bg-cyan-500' },
+  { name: lang === 'ar' ? 'سايبر نيون' : 'Cyber Neon Gradient', id: 'grad_neon', category: 'gradients', background: 'bg-gradient-to-r from-fuchsia-900 via-indigo-900 to-purple-950', bubble: 'bg-fuchsia-600' },
+  { name: lang === 'ar' ? 'باستيل حالم' : 'Dreamy Pastel Gradient', id: 'grad_pastel', category: 'gradients', background: 'bg-gradient-to-tr from-pink-200 via-purple-200 to-indigo-200 dark:from-pink-900/40 dark:via-purple-900/40 dark:to-indigo-900/40', bubble: 'bg-violet-500' },
+  { name: lang === 'ar' ? 'شعاع الزمرد' : 'Emerald Beam Gradient', id: 'grad_emerald', category: 'gradients', background: 'bg-gradient-to-b from-emerald-900 via-teal-950 to-green-950', bubble: 'bg-emerald-500' },
+  { name: lang === 'ar' ? 'الشفق الداكن' : 'Dark Dusk Gradient', id: 'grad_dusk', category: 'gradients', background: 'bg-gradient-to-b from-slate-900 via-purple-950 to-black', bubble: 'bg-purple-600' },
+  { name: lang === 'ar' ? 'ذهب سائل' : 'Liquid Gold Gradient', id: 'grad_gold', category: 'gradients', background: 'bg-gradient-to-br from-amber-900 via-yellow-800 to-stone-900', bubble: 'bg-amber-500' },
+  { name: lang === 'ar' ? 'بنفسجي ملكي' : 'Royal Violet Gradient', id: 'grad_violet', category: 'gradients', background: 'bg-gradient-to-tr from-violet-950 via-indigo-900 to-fuchsia-950', bubble: 'bg-violet-600' },
 
-  // --- Classic Themes (كلاسيكي وألوان 🎨) ---
+  // ==================== 14. Classic Color Themes (كلاسيكي 🎨) ====================
   { name: lang === 'ar' ? 'افتراضي' : 'Default', id: 'default', category: 'classic', background: 'bg-white dark:bg-gray-900', bubble: 'bg-blue-600' },
   { name: lang === 'ar' ? 'محيط' : 'Ocean', id: 'ocean', category: 'classic', background: 'bg-gradient-to-b from-blue-50 to-blue-100 dark:from-gray-900 dark:to-blue-900/20', bubble: 'bg-cyan-600' },
   { name: lang === 'ar' ? 'صداقة' : 'Friendship', id: 'friendship', category: 'classic', background: 'bg-gradient-to-tr from-yellow-50 via-orange-50 to-blue-50 dark:from-yellow-900/20 dark:via-orange-900/20 dark:to-blue-900/20', bubble: 'bg-indigo-500' },
@@ -477,6 +602,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose, currentUser, ind
   // Theme Preview State
   const [previewTheme, setPreviewTheme] = useState<Theme>(settings.theme);
   const [selectedThemeCategory, setSelectedThemeCategory] = useState<string>('all');
+  const categoryTabsRef = useRef<HTMLDivElement>(null);
 
   // File Upload State
   const [pendingMedia, setPendingMedia] = useState<PendingMedia | null>(null);
@@ -1488,7 +1614,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose, currentUser, ind
 
       return createPortal(
           <div className="fixed inset-0 z-[10000] bg-black/60 flex items-center justify-center p-4 animate-fadeIn backdrop-blur-sm" onClick={() => setActiveModal(null)}>
-              <div className={`bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full ${(activeModal === 'theme' || activeModal === 'emoji') ? 'max-w-5xl h-[600px]' : 'max-w-sm'} overflow-hidden animate-scaleIn border border-gray-200 dark:border-gray-700 flex flex-col`} onClick={e => e.stopPropagation()}>
+              <div className={`bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full ${activeModal === 'theme' ? 'max-w-6xl h-[680px]' : activeModal === 'emoji' ? 'max-w-5xl h-[600px]' : 'max-w-sm'} overflow-hidden animate-scaleIn border border-gray-200 dark:border-gray-700 flex flex-col`} onClick={e => e.stopPropagation()}>
                   <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-700/50 flex-shrink-0">
                       <h3 className="font-bold text-lg text-gray-900 dark:text-white flex items-center gap-2">
                           {activeModal === 'report' && <Flag className="w-5 h-5 text-red-500" />}
@@ -1611,24 +1737,48 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose, currentUser, ind
                                   </h4>
 
                                   {/* Category Tabs */}
-                                  <div className="flex items-center gap-1.5 overflow-x-auto pb-2 mb-3 no-scrollbar flex-shrink-0">
-                                      {[
-                                          { id: 'all', label: language === 'ar' ? 'الكل' : 'All' },
-                                          { id: 'love', label: language === 'ar' ? 'حب وقلوب ❤️' : 'Love ❤️' },
-                                          { id: 'geometric', label: language === 'ar' ? 'أشكال هندسية 📐' : 'Geometric 📐' },
-                                          { id: 'nature', label: language === 'ar' ? 'طبيعة وسحر 🌌' : 'Nature 🌌' },
-                                          { id: 'celebration', label: language === 'ar' ? 'مناسبات 🎆' : 'Celebrations 🎆' },
-                                          { id: 'gradients', label: language === 'ar' ? 'تدرجات 🌈' : 'Gradients 🌈' },
-                                          { id: 'classic', label: language === 'ar' ? 'كلاسيكي 🎨' : 'Classic 🎨' },
-                                      ].map(cat => (
-                                          <button
-                                              key={cat.id}
-                                              onClick={() => setSelectedThemeCategory(cat.id)}
-                                              className={`px-2.5 py-1 rounded-full text-[11px] font-bold whitespace-nowrap transition-all ${selectedThemeCategory === cat.id ? 'bg-emerald-600 text-white shadow-sm' : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 border border-gray-200 dark:border-gray-600'}`}
-                                          >
-                                              {cat.label}
-                                          </button>
-                                      ))}
+                                  <div className="relative flex items-center mb-3 flex-shrink-0 group/tabs">
+                                      <button 
+                                          onClick={() => categoryTabsRef.current?.scrollBy({ left: -160, behavior: 'smooth' })}
+                                          className="absolute -left-2 z-20 w-7 h-7 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-full shadow-md border border-gray-200 dark:border-gray-600 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-600 transition"
+                                          title={language === 'ar' ? 'السابق' : 'Previous'}
+                                      >
+                                          <ChevronRight className="w-4 h-4 rtl:rotate-180" />
+                                      </button>
+                                      <div ref={categoryTabsRef} className="flex items-center gap-1.5 overflow-x-auto px-6 py-1 no-scrollbar scroll-smooth w-full">
+                                          {[
+                                              { id: 'all', label: language === 'ar' ? 'الكل' : 'All' },
+                                              { id: 'messenger', label: language === 'ar' ? 'ماسنجر 💬' : 'Messenger 💬' },
+                                              { id: 'anime', label: language === 'ar' ? 'أنمي ⛩️' : 'Anime ⛩️' },
+                                              { id: 'abstract', label: language === 'ar' ? 'تجريدي ونئون 🎨' : 'Abstract 🎨' },
+                                              { id: 'sports', label: language === 'ar' ? 'رياضة ⚽' : 'Sports ⚽' },
+                                              { id: 'pets', label: language === 'ar' ? 'حيوانات أليفة 🐾' : 'Pets 🐾' },
+                                              { id: 'love', label: language === 'ar' ? 'حب وقلوب ❤️' : 'Love ❤️' },
+                                              { id: 'geometric', label: language === 'ar' ? 'أشكال هندسية 📐' : 'Geometric 📐' },
+                                              { id: 'nature', label: language === 'ar' ? 'طبيعة وأزهار 🌿' : 'Nature 🌿' },
+                                              { id: 'space', label: language === 'ar' ? 'فضاء ومجرات 🚀' : 'Space 🚀' },
+                                              { id: 'celebration', label: language === 'ar' ? 'مناسبات 🎆' : 'Celebrations 🎆' },
+                                              { id: 'cozy', label: language === 'ar' ? 'قهوة واسترخاء ☕' : 'Cozy ☕' },
+                                              { id: 'travel', label: language === 'ar' ? 'سفر ومعالم ✈️' : 'Travel ✈️' },
+                                              { id: 'gradients', label: language === 'ar' ? 'تدرجات 🌈' : 'Gradients 🌈' },
+                                              { id: 'classic', label: language === 'ar' ? 'كلاسيكي 🎨' : 'Classic 🎨' },
+                                          ].map(cat => (
+                                              <button
+                                                  key={cat.id}
+                                                  onClick={() => setSelectedThemeCategory(cat.id)}
+                                                  className={`px-3 py-1 rounded-full text-[11px] font-bold whitespace-nowrap transition-all flex-shrink-0 ${selectedThemeCategory === cat.id ? 'bg-emerald-600 text-white shadow-sm' : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 border border-gray-200 dark:border-gray-600'}`}
+                                              >
+                                                  {cat.label}
+                                              </button>
+                                          ))}
+                                      </div>
+                                      <button 
+                                          onClick={() => categoryTabsRef.current?.scrollBy({ left: 160, behavior: 'smooth' })}
+                                          className="absolute -right-2 z-20 w-7 h-7 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-full shadow-md border border-gray-200 dark:border-gray-600 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-600 transition"
+                                          title={language === 'ar' ? 'التالي' : 'Next'}
+                                      >
+                                          <ChevronLeft className="w-4 h-4 rtl:rotate-180" />
+                                      </button>
                                   </div>
 
                                   {/* Grid of Themes */}

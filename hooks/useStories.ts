@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { Story, User } from '../types';
+import { Story, User, StoryMusicTrack } from '../types';
 import { initialStories, generateId } from '../data/initialData';
 
 export const useStories = (
@@ -12,18 +12,24 @@ export const useStories = (
   const [storyProgress, setStoryProgress] = useState(0);
   const [isStoryPaused, setIsStoryPaused] = useState(false);
 
-  const handleAddStory = (mediaUrl: string) => {
+  const handleAddStory = (mediaUrl: string, type: 'image' | 'text' = 'image', musicTrack?: StoryMusicTrack) => {
       const newStory: Story = {
           id: `ns_${generateId()}`,
           userId: currentUser.id,
           userName: currentUser.name,
           userAvatar: currentUser.avatar,
           mediaUrl: mediaUrl,
-          type: 'image',
-          timestamp: 'الآن'
+          type: type,
+          timestamp: 'الآن',
+          musicTrack: musicTrack
       };
       setStories([newStory, ...stories]);
       showNotification('تم إضافة القصة بنجاح');
+  };
+
+  const handleDeleteStory = (storyId: string) => {
+      setStories(prev => prev.filter(s => s.id !== storyId));
+      showNotification('تم حذف القصة بنجاح');
   };
 
   const handleViewUserStory = (userId: string) => {
@@ -86,6 +92,7 @@ export const useStories = (
     storyProgress, setStoryProgress,
     isStoryPaused, setIsStoryPaused,
     handleAddStory,
+    handleDeleteStory,
     handleViewUserStory,
     handleNextStory,
     handlePrevStory

@@ -64,6 +64,14 @@ export interface Post {
   poll?: Poll;
 }
 
+export interface StoryMusicTrack {
+  id: string;
+  title: string;
+  artist: string;
+  genre: string;
+  audioUrl: string;
+}
+
 export interface Story {
   id: string;
   userId: string;
@@ -73,6 +81,7 @@ export interface Story {
   type: 'image' | 'text';
   timestamp: string;
   viewed?: boolean;
+  musicTrack?: StoryMusicTrack;
 }
 
 /* Fix: Added optional timestamp property to Photo interface to allow consistent access across media types in the UI */

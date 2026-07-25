@@ -47,7 +47,8 @@ interface AppBodyProps {
   syncDeleteComment: (id: string, commentId: string) => void;
   syncLikeComment: (id: string, commentId: string) => void;
   handleUpdateName: (name: string) => void;
-  handleAddStory: (url: string) => void;
+  handleAddStory: (url: string, type?: 'image' | 'text') => void;
+  handleDeleteStory?: (storyId: string) => void;
   handleViewUserStory: (id: string) => void;
   handleFriendAction: (action: 'unfriend' | 'block', user: User) => void;
   handleUpdateAvatar: (url: string) => void;
@@ -68,7 +69,7 @@ const AppBody: React.FC<AppBodyProps> = ({
   viewingProfile, onlineUsers, handleProfileClick,
   handleFriendClick, handleOpenChat, handleCreatePost, handleTogglePinPost,
   handleDeletePost, syncToggleSave, syncLike, syncComment, syncDeleteComment,
-  syncLikeComment, handleUpdateName, handleAddStory, handleViewUserStory, handleFriendAction,
+  syncLikeComment, handleUpdateName, handleAddStory, handleDeleteStory, handleViewUserStory, handleFriendAction,
   handleUpdateAvatar, handleUpdateCover, isGlobalLoading = false,
   handleProfileUpdate, showNotification,
   /* Fix: Added missing props from interface to destructuring */
@@ -104,6 +105,7 @@ const AppBody: React.FC<AppBodyProps> = ({
               posts={posts} 
               savedPhotos={media.savedPhotos} 
               onAddStory={handleAddStory} 
+              onDeleteStory={handleDeleteStory}
               onPostCreate={handleCreatePost}
               onTogglePin={handleTogglePinPost}
               onDeletePost={handleDeletePost}

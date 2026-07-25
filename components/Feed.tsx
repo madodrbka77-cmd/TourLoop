@@ -15,7 +15,8 @@ interface FeedProps {
   stories: Story[];
   posts: Post[];
   savedPhotos: Photo[];
-  onAddStory: (mediaUrl: string) => void;
+  onAddStory: (mediaUrl: string, type?: 'image' | 'text') => void;
+  onDeleteStory?: (storyId: string) => void;
   onPostCreate: (content: string, image?: string) => void;
   onTogglePin?: (postId: string) => void;
   onDeletePost?: (postId: string) => void;
@@ -85,6 +86,7 @@ const Feed: React.FC<FeedProps> = ({
     posts, 
     savedPhotos,
     onAddStory, 
+    onDeleteStory,
     onPostCreate, 
     onTogglePin, 
     onDeletePost, 
@@ -398,6 +400,7 @@ const Feed: React.FC<FeedProps> = ({
             currentUser={currentUser}
             onClose={() => setViewingStoryGroupIndex(null)}
             onAddStory={onAddStory}
+            onDeleteStory={onDeleteStory}
           />
       )}
 

@@ -126,7 +126,7 @@ const AppContent: React.FC = () => {
   const { 
     stories, viewingStoryIndex, setViewingStoryIndex,
     storyProgress, isStoryPaused, setIsStoryPaused,
-    handleAddStory, handleViewUserStory, handleNextStory, handlePrevStory
+    handleAddStory, handleDeleteStory, handleViewUserStory, handleNextStory, handlePrevStory
   } = useStories(currentUser, showNotification);
 
   // 6. Chat Logic
@@ -737,6 +737,7 @@ const AppContent: React.FC = () => {
         handleUpdateName={handleUpdateName}
         handleProfileUpdate={handleProfileUpdate} 
         handleAddStory={handleAddStory}
+        handleDeleteStory={handleDeleteStory}
         handleViewUserStory={handleViewUserStory}
         handleFriendAction={handleFriendAction}
         handleUpdateAvatar={handleUpdateAvatar}

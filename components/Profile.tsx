@@ -3,7 +3,8 @@ import { createPortal } from 'react-dom';
 import { User, Post, TabType, Photo, Album, VideoItem, Story, Page } from '../types';
 import ProfileHeader from './ProfileHeader';
 import ProfileMediaLightbox from './ProfileMediaLightbox';
-import ProfileStoryOverlay from './ProfileStoryOverlay';
+import StoryViewer from './StoryViewer';
+import { UserStoryGroup } from './StoryReel';
 import ProfileTabsContent from './ProfileTabsContent';
 import { useLanguage } from '../context/LanguageContext';
 import { Shield, Eye, X } from 'lucide-react';
@@ -33,6 +34,7 @@ interface ProfileProps {
   onUpdateCover?: (url: string) => void;
   onUpdateName?: (newName: string) => void;
   onAddStory?: (url: string) => void;
+  onDeleteStory?: (storyId: string) => void;
   onViewStory?: (userId: string) => void;
 
   photos?: Photo[];
@@ -97,6 +99,7 @@ const Profile: React.FC<ProfileProps> = ({
     onUpdateCover,
     onUpdateName,
     onAddStory,
+    onDeleteStory,
     onViewStory,
     photos = [],
     albums = [],
