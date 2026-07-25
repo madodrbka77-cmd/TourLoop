@@ -7,6 +7,7 @@ import { useLanguage } from '../context/LanguageContext';
 
 interface AppOverlaysProps {
   activeChats: User[];
+  onViewProfile?: (user: User) => void;
   currentUser: User;
   handleCloseChat: (id: string) => void;
   appNotification: {message: string, type: 'success' | 'info' | 'error'} | null;
@@ -23,6 +24,7 @@ interface AppOverlaysProps {
 
 const AppOverlays: React.FC<AppOverlaysProps> = ({
   activeChats,
+  onViewProfile,
   currentUser,
   handleCloseChat,
   // appNotification and setAppNotification are kept in props for compatibility but not rendered to prevent duplication
@@ -49,6 +51,7 @@ const AppOverlays: React.FC<AppOverlaysProps> = ({
           currentUser={currentUser}
           index={index} 
           onClose={() => handleCloseChat(user.id)} 
+          onViewProfile={onViewProfile}
         />
       ))}
 

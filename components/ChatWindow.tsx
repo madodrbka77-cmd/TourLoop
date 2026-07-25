@@ -51,6 +51,7 @@ interface ChatWindowProps {
   onClose: () => void;
   currentUser: User;
   index: number;
+  onViewProfile?: (user: User) => void;
 }
 
 interface Theme {
@@ -232,15 +233,11 @@ class MockWebSocket {
   emit(event: string, data: any) {
     setTimeout(() => {
       if (event === 'send_message') {
-        this.trigger('message_status_update', { id: data.id, status: 'delivered' });
+        const chatId = data?.chatId || data?.userId;
+        this.trigger('message_status_update', { id: data.id, status: 'delivered', chatId });
         setTimeout(() => {
-          this.trigger('message_status_update', { id: data.id, status: 'seen' });
+          this.trigger('message_status_update', { id: data.id, status: 'seen', chatId });
         }, 3000);
-
-        this.trigger('partner_typing_start', {});
-        setTimeout(() => {
-            this.trigger('partner_typing_stop', {});
-        }, 2000);
       }
     }, 500);
   }
@@ -355,7 +352,7 @@ const AudioPlayer = ({ src, sender }: { src: string, sender: 'me' | 'them' }) =>
   );
 };
 
-const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose, currentUser, index }) => {
+const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose, currentUser, index, onViewProfile }) => {
   const { t, dir, language } = useLanguage();
   const THEMES = getThemes(language);
   
@@ -420,6 +417,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose, currentUser, ind
 
   // Reaction Mode State
   const [messageReactionTarget, setMessageReactionTarget] = useState<string | null>(null);
+  const [menuPlacement, setMenuPlacement] = useState<{ v: 'above' | 'below'; h: 'left-0' | 'right-0' }>({ v: 'above', h: 'left-0' });
 
   // Modals State
   const [activeModal, setActiveModal] = useState<'report' | 'readReceipts' | 'theme' | 'emoji' | 'nickname' | 'deleteConfirm' | 'deleteMessageConfirm' | 'unsend' | 'forward' | 'blockConfirm' | 'profile' | null>(null);
@@ -445,6 +443,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose, currentUser, ind
   const audioChunksRef = useRef<Blob[]>([]);
   const shouldDiscardRef = useRef(false);
   const touchStartYRef = useRef<number | null>(null);
+  const touchStartXRef = useRef<number | null>(null);
 
   const updateRecordingLocked = (locked: boolean) => {
     setIsRecordingLocked(locked);
@@ -484,11 +483,20 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose, currentUser, ind
   const [showMediaReactions, setShowMediaReactions] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatScrollRef = useRef<HTMLDivElement>(null);
   const replyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const callTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const durationIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const recordingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const textInputRef = useRef<HTMLInputElement>(null);
+
+  const handleStartReply = (msg: ChatMessage) => {
+    setReplyingTo(msg);
+    setTimeout(() => {
+      textInputRef.current?.focus();
+    }, 50);
+  };
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
@@ -533,13 +541,26 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose, currentUser, ind
   useEffect(() => {
     socket.connect();
 
-    const handleStatusUpdate = ({ id, status }: { id: string, status: 'sent'|'delivered'|'seen' }) => {
-      setMessages(prev => prev.map(msg => msg.id === id ? { ...msg, status } : msg));
+    const handleStatusUpdate = (data: { id: string, status: 'sent'|'delivered'|'seen', chatId?: string }) => {
+      if (data?.chatId && data.chatId !== user.id) return;
+      setMessages(prev => prev.map(msg => msg.id === data.id ? { ...msg, status: data.status } : msg));
     };
 
-    const handleTypingStart = () => { setIsTyping(true); setPartnerActivity('typing'); };
-    const handleRecordingStart = () => { setIsTyping(true); setPartnerActivity('recording'); };
-    const handleTypingStop = () => { setIsTyping(false); setPartnerActivity('idle'); };
+    const handleTypingStart = (data?: { chatId?: string }) => {
+      if (data?.chatId && data.chatId !== user.id) return;
+      setIsTyping(true);
+      setPartnerActivity(prev => prev === 'recording' ? 'recording' : 'typing');
+    };
+    const handleRecordingStart = (data?: { chatId?: string }) => {
+      if (data?.chatId && data.chatId !== user.id) return;
+      setIsTyping(true);
+      setPartnerActivity('recording');
+    };
+    const handleTypingStop = (data?: { chatId?: string }) => {
+      if (data?.chatId && data.chatId !== user.id) return;
+      setIsTyping(false);
+      setPartnerActivity('idle');
+    };
 
     socket.on('message_status_update', handleStatusUpdate);
     socket.on('partner_typing_start', handleTypingStart);
@@ -552,7 +573,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose, currentUser, ind
       socket.off('partner_recording_start', handleRecordingStart);
       socket.off('partner_typing_stop', handleTypingStop);
     };
-  }, []);
+  }, [user.id]);
 
   useLayoutEffect(() => {
     scrollToBottom();
@@ -838,9 +859,13 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose, currentUser, ind
     if (pendingMedia) return;
 
     if (e) {
+      const clientX = 'touches' in e && e.touches.length > 0 
+        ? e.touches[0].clientX 
+        : ('clientX' in e ? e.clientX : null);
       const clientY = 'touches' in e && e.touches.length > 0 
         ? e.touches[0].clientY 
         : ('clientY' in e ? e.clientY : null);
+      touchStartXRef.current = clientX;
       touchStartYRef.current = clientY;
     }
 
@@ -912,25 +937,50 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose, currentUser, ind
     }
   };
 
-  const handleRecordingTouchOrMouseMove = (clientY: number) => {
-    if (isRecordingRef.current && !isRecordingLockedRef.current && touchStartYRef.current !== null) {
-      const deltaY = clientY - touchStartYRef.current;
-      if (deltaY < -25) {
-        updateRecordingLocked(true);
+  const handleRecordingTouchOrMouseMove = (clientX: number, clientY: number) => {
+    if (isRecordingRef.current && !isRecordingLockedRef.current) {
+      // Swipe UP -> Lock recording
+      if (touchStartYRef.current !== null) {
+        const deltaY = clientY - touchStartYRef.current;
+        if (deltaY < -25) {
+          updateRecordingLocked(true);
+          return;
+        }
+      }
+      // Swipe LEFT -> Cancel / Delete recording
+      if (touchStartXRef.current !== null) {
+        const deltaX = clientX - touchStartXRef.current;
+        if (deltaX < -40) {
+          cancelRecording();
+          return;
+        }
       }
     }
   };
 
   useEffect(() => {
+    const handleGlobalMove = (e: MouseEvent | TouchEvent) => {
+      if (!isRecordingRef.current || isRecordingLockedRef.current) return;
+      const clientX = 'touches' in e && e.touches.length > 0 ? e.touches[0].clientX : ('clientX' in e ? (e as MouseEvent).clientX : null);
+      const clientY = 'touches' in e && e.touches.length > 0 ? e.touches[0].clientY : ('clientY' in e ? (e as MouseEvent).clientY : null);
+      if (clientX !== null && clientY !== null) {
+        handleRecordingTouchOrMouseMove(clientX, clientY);
+      }
+    };
+
     const handleGlobalRelease = () => {
       if (isRecordingRef.current && !isRecordingLockedRef.current) {
         stopAndSendRecording();
       }
     };
 
+    window.addEventListener('mousemove', handleGlobalMove);
+    window.addEventListener('touchmove', handleGlobalMove);
     window.addEventListener('mouseup', handleGlobalRelease);
     window.addEventListener('touchend', handleGlobalRelease);
     return () => {
+      window.removeEventListener('mousemove', handleGlobalMove);
+      window.removeEventListener('touchmove', handleGlobalMove);
       window.removeEventListener('mouseup', handleGlobalRelease);
       window.removeEventListener('touchend', handleGlobalRelease);
     };
@@ -1681,29 +1731,44 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose, currentUser, ind
                                   </div>
                               </div>
 
-                              {/* Quick Actions inside Profile */}
-                              <div className="grid grid-cols-3 gap-2 w-full mt-2">
+                              {/* View Profile Button & Quick Actions inside Profile Modal */}
+                              <button
+                                  onClick={() => {
+                                      setActiveModal(null);
+                                      if (onViewProfile) onViewProfile(user);
+                                  }}
+                                  className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition text-xs font-bold shadow-md hover:shadow-lg transform active:scale-95 my-2"
+                              >
+                                  <UserCircle className="w-4 h-4" />
+                                  <span>{language === 'ar' ? 'عرض الملف الشخصي الكامل' : 'View Full Profile'}</span>
+                              </button>
+
+                              <div className="grid grid-cols-3 gap-2 w-full mt-1">
                                   <button 
                                       onClick={() => { setActiveModal(null); startCall('audio'); }}
-                                      className="flex flex-col items-center gap-1 p-2 bg-emerald-50 dark:bg-emerald-900/20 hover:bg-emerald-100 text-emerald-700 dark:text-emerald-300 rounded-xl transition text-[11px] font-bold"
+                                      className="group flex flex-col items-center gap-1 p-2.5 bg-emerald-50 dark:bg-emerald-950/80 hover:bg-emerald-100 dark:hover:bg-emerald-600 text-emerald-700 dark:text-emerald-200 dark:hover:text-white rounded-xl transition-all duration-200 text-[11px] font-bold border border-emerald-200/60 dark:border-emerald-500/40 shadow-sm"
                                   >
-                                      <Phone className="w-4 h-4" />
+                                      <Phone className="w-4 h-4 text-emerald-600 dark:text-emerald-300 group-hover:scale-110 group-hover:text-emerald-800 dark:group-hover:text-white transition-transform" />
                                       <span>{language === 'ar' ? 'مكالمة' : 'Call'}</span>
                                   </button>
                                   <button 
                                       onClick={() => { setActiveModal(null); startCall('video'); }}
-                                      className="flex flex-col items-center gap-1 p-2 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 text-blue-700 dark:text-blue-300 rounded-xl transition text-[11px] font-bold"
+                                      className="group flex flex-col items-center gap-1 p-2.5 bg-blue-50 dark:bg-blue-950/80 hover:bg-blue-100 dark:hover:bg-blue-600 text-blue-700 dark:text-blue-200 dark:hover:text-white rounded-xl transition-all duration-200 text-[11px] font-bold border border-blue-200/60 dark:border-blue-500/40 shadow-sm"
                                   >
-                                      <Video className="w-4 h-4" />
+                                      <Video className="w-4 h-4 text-blue-600 dark:text-blue-300 group-hover:scale-110 group-hover:text-blue-800 dark:group-hover:text-white transition-transform" />
                                       <span>{language === 'ar' ? 'فيديو' : 'Video'}</span>
                                   </button>
                                   <button 
                                       onClick={() => {
                                           setSettings(p => ({ ...p, isMuted: !p.isMuted }));
                                       }}
-                                      className="flex flex-col items-center gap-1 p-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 text-gray-700 dark:text-gray-200 rounded-xl transition text-[11px] font-bold"
+                                      className="group flex flex-col items-center gap-1 p-2.5 bg-gray-100 dark:bg-gray-800/90 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 dark:hover:text-white rounded-xl transition-all duration-200 text-[11px] font-bold border border-gray-200 dark:border-gray-600/80 shadow-sm"
                                   >
-                                      {settings.isMuted ? <BellOff className="w-4 h-4 text-red-500" /> : <Bell className="w-4 h-4 text-emerald-600" />}
+                                      {settings.isMuted ? (
+                                          <BellOff className="w-4 h-4 text-red-500 dark:text-red-400 group-hover:scale-110 dark:group-hover:text-red-200 transition-transform" />
+                                      ) : (
+                                          <Bell className="w-4 h-4 text-emerald-600 dark:text-emerald-300 group-hover:scale-110 dark:group-hover:text-white transition-transform" />
+                                      )}
                                       <span>{settings.isMuted ? (language === 'ar' ? 'إلغاء الكتم' : 'Unmute') : (language === 'ar' ? 'كتم' : 'Mute')}</span>
                                   </button>
                               </div>
@@ -1742,11 +1807,23 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose, currentUser, ind
                             onClick={() => {
                               setActiveModal('blockConfirm');
                             }} 
-                            className="text-xs font-bold text-red-600 hover:text-red-700 flex items-center gap-1 hover:underline"
+                            className="text-xs font-bold text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 flex items-center gap-1 hover:underline"
                           >
                               <ShieldBan className="w-4 h-4" /> {language === 'ar' ? 'حظر المستخدم' : 'Block User'}
                           </button>
-                          <button onClick={() => setActiveModal(null)} className="px-6 py-2 text-gray-700 dark:text-gray-200 font-bold hover:bg-gray-200 dark:hover:bg-gray-600 rounded-xl transition text-sm">{t.common_close}</button>
+                          <div className="flex items-center gap-2">
+                              <button 
+                                onClick={() => {
+                                  setActiveModal(null);
+                                  if (onViewProfile) onViewProfile(user);
+                                }} 
+                                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition text-xs shadow flex items-center gap-1.5 transform active:scale-95"
+                              >
+                                  <UserCircle className="w-4 h-4" />
+                                  <span>{language === 'ar' ? 'عرض الملف الشخصي' : 'View Profile'}</span>
+                              </button>
+                              <button onClick={() => setActiveModal(null)} className="px-4 py-2 text-gray-700 dark:text-gray-200 font-bold hover:bg-gray-200 dark:hover:bg-gray-600 rounded-xl transition text-xs">{t.common_close}</button>
+                          </div>
                       </div>
                   )}
 
@@ -1855,7 +1932,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose, currentUser, ind
                    <Mic className="w-3 h-3 animate-pulse inline-block" />
                    {language === 'ar' ? 'جاري تسجيل مقطع صوتي...' : 'recording voice note...'}
                  </span>
-               ) : (isTyping || partnerActivity === 'typing') ? (
+               ) : partnerActivity === 'typing' ? (
                  <span className="text-emerald-200 font-bold animate-pulse flex items-center gap-1">
                    {language === 'ar' ? 'جاري الكتابة...' : 'typing...'}
                  </span>
@@ -1903,7 +1980,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose, currentUser, ind
       )}
 
       {/* Messages Area */}
-      <div className={`flex-1 overflow-y-auto p-3 no-scrollbar relative ${settings.theme.background}`}>
+      <div ref={chatScrollRef} className={`flex-1 overflow-y-auto p-3 no-scrollbar relative ${settings.theme.background}`}>
         {/* Call Overlay */}
         {callStatus !== 'idle' && (
             <div className="absolute inset-0 bg-gray-900 z-30 flex flex-col items-center justify-center text-white overflow-hidden animate-fadeIn">
@@ -1965,7 +2042,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose, currentUser, ind
             return (
               <div 
                 key={msg.id} 
-                className={`flex flex-col ${msg.sender === 'me' ? 'items-end' : 'items-start'} relative group mb-2 transition-opacity ${hasQuery && !isMatch ? 'opacity-30 hover:opacity-100' : 'opacity-100'}`}
+                className={`flex flex-col ${msg.sender === 'me' ? 'items-end' : 'items-start'} relative group mb-2 transition-opacity ${messageMenuOpen === msg.id ? 'z-30' : 'z-1'} ${hasQuery && !isMatch ? 'opacity-30 hover:opacity-100' : 'opacity-100'}`}
                 onContextMenu={(e) => { e.preventDefault(); setActiveReactionId(msg.id); }}
               >
                 {msg.type === 'system' ? (
@@ -1993,7 +2070,8 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose, currentUser, ind
                           {/* Message Bubble */}
                           <div 
                               id={`msg-${msg.id}`}
-                              className={`px-3 py-2 rounded-2xl text-[15px] shadow-sm relative transition-all max-w-[85%] ${
+                               onDoubleClick={() => handleStartReply(msg)}
+                              className={`px-3 py-2 rounded-2xl text-[15px] shadow-sm relative transition-all max-w-[70%] sm:max-w-[72%] ${
                                   isMatch ? 'ring-2 ring-emerald-500 dark:ring-emerald-400 bg-emerald-50/20' : ''
                               } ${ 
                                   msg.type === 'emoji' ? 'bg-transparent shadow-none p-0' : 
@@ -2022,11 +2100,21 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose, currentUser, ind
                               )}
 
                               {msg.type === 'image' && msg.mediaUrl && (
-                                  <div 
-                                      className="cursor-pointer overflow-hidden rounded-lg mb-1 border border-black/10"
-                                      onClick={() => { setViewingMedia({ message: msg, type: 'image' }); setZoomLevel(1); }}
-                                  >
-                                      <img src={msg.mediaUrl} alt="sent" className="w-full h-auto max-h-40 object-cover" />
+                                  <div className="flex flex-col max-w-full min-w-0">
+                                      {msg.fileName && (
+                                          <div className="flex items-center gap-1.5 text-[11px] font-medium opacity-80 mb-1 max-w-full overflow-hidden dir-auto">
+                                              <Image className="w-3.5 h-3.5 flex-shrink-0 text-emerald-500" />
+                                              <span className="truncate max-w-[200px] block" title={msg.fileName}>
+                                                  {msg.fileName}
+                                              </span>
+                                          </div>
+                                      )}
+                                      <div 
+                                          className="cursor-pointer overflow-hidden rounded-lg mb-1 border border-black/10 max-w-full"
+                                          onClick={() => { setViewingMedia({ message: msg, type: 'image' }); setZoomLevel(1); }}
+                                      >
+                                          <img src={msg.mediaUrl} alt="sent" className="w-full h-auto max-h-52 object-cover rounded-lg" />
+                                      </div>
                                   </div>
                               )}
 
@@ -2040,14 +2128,24 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose, currentUser, ind
                               )}
                               
                               {msg.type === 'video' && msg.mediaUrl && (
-                                  <div 
-                                      className="cursor-pointer overflow-hidden rounded-lg mb-1 border border-black/10 relative group-hover:brightness-90 transition"
-                                      onClick={() => { setViewingMedia({ message: msg, type: 'video' }); setZoomLevel(1); }}
-                                  >
-                                      <video src={msg.mediaUrl} className="w-full h-auto max-h-40 object-cover" />
-                                      <div className="absolute inset-0 flex items-center justify-center">
-                                          <div className="bg-black/30 p-2 rounded-full">
-                                          <Play className="w-6 h-6 text-white fill-current" />
+                                  <div className="flex flex-col max-w-full min-w-0">
+                                      {msg.fileName && (
+                                          <div className="flex items-center gap-1.5 text-[11px] font-medium opacity-80 mb-1 max-w-full overflow-hidden dir-auto">
+                                              <Video className="w-3.5 h-3.5 flex-shrink-0 text-emerald-500" />
+                                              <span className="truncate max-w-[200px] block" title={msg.fileName}>
+                                                  {msg.fileName}
+                                              </span>
+                                          </div>
+                                      )}
+                                      <div 
+                                          className="cursor-pointer overflow-hidden rounded-lg mb-1 border border-black/10 relative group-hover:brightness-90 transition max-w-full"
+                                          onClick={() => { setViewingMedia({ message: msg, type: 'video' }); setZoomLevel(1); }}
+                                      >
+                                          <video src={msg.mediaUrl} className="w-full h-auto max-h-52 object-cover rounded-lg" />
+                                          <div className="absolute inset-0 flex items-center justify-center">
+                                              <div className="bg-black/30 p-2 rounded-full">
+                                                  <Play className="w-6 h-6 text-white fill-current" />
+                                              </div>
                                           </div>
                                       </div>
                                   </div>
@@ -2057,7 +2155,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose, currentUser, ind
                                   <AudioPlayer src={msg.mediaUrl} sender={msg.sender} />
                               )}
                               
-                              {msg.type !== 'emoji' && msg.text && <div className="whitespace-pre-wrap break-words text-start leading-relaxed">{msg.text}</div>}
+                              {msg.type !== 'emoji' && msg.text && <div className="whitespace-pre-wrap break-words break-all [overflow-wrap:anywhere] text-start leading-relaxed">{msg.text}</div>}
                               
                               <div className={`flex items-center justify-end gap-1 mt-1 opacity-70`}>
                                   <span className="text-[9px]">{msg.timestamp}</span>
@@ -2078,7 +2176,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose, currentUser, ind
                           </div>
 
                           {/* Action Menu (Visible on Hover) */}
-                          <div className={`flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 ${msg.sender === 'me' ? 'flex-row-reverse' : 'flex-row'}`}>
+                          <div className={`relative flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 ${msg.sender === 'me' ? 'flex-row-reverse' : 'flex-row'}`}>
                               {/* Emoji Button */}
                               <button 
                                   onClick={(e) => { 
@@ -2095,7 +2193,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose, currentUser, ind
                               </button>
                               
                               <button 
-                                  onClick={(e) => { e.stopPropagation(); setReplyingTo(msg); }}
+                                  onClick={(e) => { e.stopPropagation(); handleStartReply(msg); }}
                                   className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition text-gray-400 hover:text-blue-500 bg-white/50 dark:bg-black/20 backdrop-blur-sm"
                                   title={language === 'ar' ? 'رد' : 'Reply'}
                               >
@@ -2105,65 +2203,109 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose, currentUser, ind
                               <button 
                                   onClick={(e) => { 
                                       e.stopPropagation(); 
-                                      setMessageMenuOpen(msg.id);
+                                      const btnRect = e.currentTarget.getBoundingClientRect();
+                                      const scrollEl = chatScrollRef.current;
+                                      const scrollRect = scrollEl ? scrollEl.getBoundingClientRect() : (chatContainerRef.current ? chatContainerRef.current.getBoundingClientRect() : null);
+
+                                      const viewportWidth = window.innerWidth;
+                                      const viewportHeight = window.innerHeight;
+
+                                      let spaceAbove = btnRect.top;
+                                      let spaceBelow = viewportHeight - btnRect.bottom;
+                                      let spaceLeft = btnRect.left;
+                                      let spaceRight = viewportWidth - btnRect.right;
+
+                                      if (scrollRect) {
+                                          spaceAbove = btnRect.top - scrollRect.top;
+                                          spaceBelow = scrollRect.bottom - btnRect.bottom;
+                                          spaceLeft = btnRect.left - scrollRect.left;
+                                          spaceRight = scrollRect.right - btnRect.right;
+                                      }
+
+                                      const MENU_HEIGHT = 160;
+                                      const MENU_WIDTH = 165;
+
+                                      let v: 'above' | 'below' = 'above';
+                                      if (spaceAbove < MENU_HEIGHT) {
+                                          v = 'below';
+                                      } else if (spaceBelow < MENU_HEIGHT) {
+                                          v = 'above';
+                                      } else {
+                                          v = spaceAbove >= spaceBelow ? 'above' : 'below';
+                                      }
+
+                                      let h: 'left-0' | 'right-0' = 'left-0';
+                                      if (spaceLeft < MENU_WIDTH) {
+                                          h = 'left-0';
+                                      } else if (spaceRight < MENU_WIDTH) {
+                                          h = 'right-0';
+                                      } else {
+                                          h = msg.sender === 'me' ? 'left-0' : 'right-0';
+                                      }
+
+                                      setMenuPlacement({ v, h });
+                                      setMessageMenuOpen(messageMenuOpen === msg.id ? null : msg.id);
                                   }}
                                   className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition text-gray-400 message-menu-trigger bg-white/50 dark:bg-black/20 backdrop-blur-sm"
                                   title={t.common_more || (language === 'ar' ? 'المزيد' : 'More')}
                               >
                                   <MoreVertical className="w-4 h-4" />
                               </button>
+
+                              {/* Specific Message Menu Dropdown directly attached to Options Bar */}
+                              {messageMenuOpen === msg.id && (
+                                  <div 
+                                      className={`absolute ${menuPlacement.v === 'below' ? 'top-full mt-1' : 'bottom-full mb-1'} ${menuPlacement.h} z-50 w-40 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border dark:border-gray-700 overflow-hidden py-1 message-menu-container`} 
+                                      onClick={e => e.stopPropagation()}
+                                  >
+                                      {msg.sender === 'me' ? (
+                                          <button 
+                                              onClick={() => { 
+                                                  setSelectedMessageId(msg.id);
+                                                  setActiveModal('unsend');
+                                                  setMessageMenuOpen(null); 
+                                              }} 
+                                              className="w-full text-start px-3 py-2 text-xs hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 flex items-center gap-2"
+                                          >
+                                              <Trash2 className="w-3.5 h-3.5" /> {language === 'ar' ? 'إلغاء الإرسال' : 'Unsend'}
+                                          </button>
+                                      ) : (
+                                          <button 
+                                              onClick={() => { 
+                                                  setSelectedMessageId(msg.id);
+                                                  setActiveModal('deleteMessageConfirm');
+                                                  setMessageMenuOpen(null); 
+                                              }} 
+                                              className="w-full text-start px-3 py-2 text-xs hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 flex items-center gap-2"
+                                          >
+                                              <Trash2 className="w-3.5 h-3.5" /> {t.common_delete || (language === 'ar' ? 'حذف' : 'Delete')}
+                                          </button>
+                                      )}
+
+                                      <button 
+                                          onClick={() => { 
+                                              setForwardStatus({});
+                                              setActiveModal('forward');
+                                              setMessageMenuOpen(null); 
+                                          }} 
+                                          className="w-full text-start px-3 py-2 text-xs hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 flex items-center gap-2"
+                                      >
+                                          <CornerUpRight className="w-3.5 h-3.5" /> {language === 'ar' ? 'إعادة توجيه' : 'Forward'}
+                                      </button>
+                                      <button 
+                                          onClick={() => { 
+                                              setReportReason('');
+                                              setActiveModal('report');
+                                              setMessageMenuOpen(null);
+                                          }} 
+                                          className="w-full text-start px-3 py-2 text-xs hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 flex items-center gap-2"
+                                      >
+                                          <Flag className="w-3.5 h-3.5" /> {t.common_report || (language === 'ar' ? 'إبلاغ' : 'Report')}
+                                      </button>
+                                  </div>
+                              )}
                           </div>
                       </div>
-
-                        {/* Specific Message Menu Dropdown */}
-                        {messageMenuOpen === msg.id && (
-                            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 z-50 w-40 bg-white dark:bg-gray-800 rounded-lg shadow-xl border dark:border-gray-700 overflow-hidden py-1 message-menu-container" onClick={e => e.stopPropagation()}>
-                                {msg.sender === 'me' ? (
-                                    <button 
-                                        onClick={() => { 
-                                            setSelectedMessageId(msg.id);
-                                            setActiveModal('unsend');
-                                            setMessageMenuOpen(null); 
-                                        }} 
-                                        className="w-full text-start px-3 py-2 text-xs hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 flex items-center gap-2"
-                                    >
-                                        <Trash2 className="w-3 h-3" /> {language === 'ar' ? 'إلغاء الإرسال' : 'Unsend'}
-                                    </button>
-                                ) : (
-                                    <button 
-                                        onClick={() => { 
-                                            setSelectedMessageId(msg.id);
-                                            setActiveModal('deleteMessageConfirm');
-                                            setMessageMenuOpen(null); 
-                                        }} 
-                                        className="w-full text-start px-3 py-2 text-xs hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 flex items-center gap-2"
-                                    >
-                                        <Trash2 className="w-3 h-3" /> {t.common_delete || (language === 'ar' ? 'حذف' : 'Delete')}
-                                    </button>
-                                )}
-
-                                <button 
-                                    onClick={() => { 
-                                        setForwardStatus({});
-                                        setActiveModal('forward');
-                                        setMessageMenuOpen(null); 
-                                    }} 
-                                    className="w-full text-start px-3 py-2 text-xs hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 flex items-center gap-2"
-                                >
-                                    <CornerUpRight className="w-3 h-3" /> {language === 'ar' ? 'إعادة توجيه' : 'Forward'}
-                                </button>
-                                <button 
-                                    onClick={() => { 
-                                        setReportReason('');
-                                        setActiveModal('report');
-                                        setMessageMenuOpen(null);
-                                    }} 
-                                    className="w-full text-start px-3 py-2 text-xs hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 flex items-center gap-2"
-                                >
-                                    <Flag className="w-3 h-3" /> {t.common_report || (language === 'ar' ? 'إبلاغ' : 'Report')}
-                                </button>
-                            </div>
-                        )}
                     </>
                 )}
               </div>
@@ -2201,7 +2343,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose, currentUser, ind
          {/* Reply Preview Banner */}
          {replyingTo && (
             <div className="flex items-center justify-between bg-gray-100 dark:bg-gray-900 p-2 rounded-t-lg border-b dark:border-gray-700 mb-1">
-               <div className="flex flex-col text-xs border-l-2 border-fb-blue pl-2">
+               <div className="flex flex-col text-xs border-l-2 rtl:border-r-2 rtl:border-l-0 border-fb-blue pl-2 rtl:pl-0 rtl:pr-2">
                   <span className="font-bold text-fb-blue">{language === 'ar' ? 'الرد على' : 'Replying to'} {replyingTo.sender === 'me' ? (language === 'ar' ? 'نفسك' : 'Yourself') : (settings.nickname || user.name)}</span>
                   <span className="truncate text-gray-500 max-w-[200px]">{replyingTo.text || (language === 'ar' ? 'مرفق وسائط' : 'Media Attachment')}</span>
                </div>
@@ -2213,25 +2355,32 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose, currentUser, ind
 
          {/* File Upload Preview Banner */}
          {pendingMedia && (
-            <div className="flex flex-col bg-gray-50 dark:bg-gray-900 p-2 rounded-lg border dark:border-gray-700 mb-2 relative animate-fadeIn">
+            <div className="flex flex-col bg-gray-50 dark:bg-gray-900 p-2.5 rounded-xl border dark:border-gray-700 mb-2 relative animate-fadeIn max-w-full overflow-hidden shadow-sm">
                 <button 
                     onClick={removePendingMedia} 
-                    className="absolute top-1 right-1 p-1 bg-gray-200 dark:bg-gray-700 rounded-full hover:bg-red-100 dark:hover:bg-red-900 transition text-gray-500 hover:text-red-500 z-10"
+                    className="absolute top-2 right-2 p-1 bg-gray-200 dark:bg-gray-700 rounded-full hover:bg-red-100 dark:hover:bg-red-900 transition text-gray-500 hover:text-red-500 z-10"
+                    title={language === 'ar' ? 'إلغاء' : 'Cancel'}
                 >
                     <X className="w-4 h-4" />
                 </button>
-                <div className="flex gap-3 items-start">
-                    <div className="relative w-24 h-24 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 bg-black flex-shrink-0">
+                <div className="flex gap-3 items-center min-w-0 pr-7">
+                    <div className="relative w-16 h-16 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 bg-black flex-shrink-0">
                         {pendingMedia.type === 'image' ? (
                             <img src={pendingMedia.url} alt="preview" className="w-full h-full object-cover" />
                         ) : (
                             <video src={pendingMedia.url} className="w-full h-full object-cover" />
                         )}
                     </div>
-                    <div className="flex-1 pt-2">
-                        <span className="text-xs font-semibold text-gray-500 uppercase">{pendingMedia.type} {language === 'ar' ? 'محدد' : 'Selected'}</span>
-                        <p className="text-sm truncate font-medium">{pendingMedia.file.name}</p>
-                        <p className="text-xs text-gray-400 mt-1">{language === 'ar' ? 'أضف شرحاً أدناه...' : 'Add a caption below...'}</p>
+                    <div className="flex-1 min-w-0 py-0.5">
+                        <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wide block">
+                            {pendingMedia.type === 'image' ? (language === 'ar' ? 'صورة محددة' : 'Selected Image') : (language === 'ar' ? 'فيديو محدد' : 'Selected Video')}
+                        </span>
+                        <p className="text-sm font-semibold text-gray-800 dark:text-gray-100 truncate max-w-full block" title={pendingMedia.file.name}>
+                            {pendingMedia.file.name}
+                        </p>
+                        <p className="text-xs text-gray-400 dark:text-gray-400 mt-0.5 truncate">
+                            {language === 'ar' ? 'أضف شرحاً أدناه أو اضغط إرسال...' : 'Add a caption below or click send...'}
+                        </p>
                     </div>
                 </div>
             </div>
@@ -2257,7 +2406,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose, currentUser, ind
                  </div>
 
                  {[ 
-                    { id: 'profile', icon: UserCircle, label: t.profile_view_profile || (language === 'ar' ? 'عرض الملف الشخصي' : 'View Profile'), action: () => setActiveModal('profile') },
+                    { id: 'profile', icon: UserCircle, label: t.profile_view_profile || (language === 'ar' ? 'عرض الملف الشخصي' : 'View Profile'), action: () => { if (onViewProfile) onViewProfile(user); else setActiveModal('profile'); } },
                     { id: 'theme', icon: Palette, label: language === 'ar' ? 'تغيير السمة' : 'Change Theme', action: () => { setPreviewTheme(settings.theme); setActiveModal('theme'); } },
                     { id: 'emoji', icon: Smile, label: language === 'ar' ? 'الرمز التعبيري' : 'Quick Emoji', action: () => { setModalInput(settings.quickEmoji); setActiveModal('emoji'); } },
                     { id: 'nicknames', icon: Type, label: language === 'ar' ? 'الكنيات' : 'Nicknames', action: () => { setModalInput(settings.nickname || user.name); setActiveModal('nickname'); } },
@@ -2279,147 +2428,138 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose, currentUser, ind
              </div>
          )}
 
-         <div className="flex items-center gap-1.5">
-             <div className="flex items-center gap-0.5">
-                 <button 
-                    onClick={() => setShowMoreMenu(!showMoreMenu)} 
-                    className={`text-emerald-600 dark:text-emerald-400 hover:text-blue-700 dark:hover:text-blue-700 hover:bg-gray-100 dark:hover:bg-gray-700 p-1.5 rounded-full transition-colors ${showMoreMenu ? 'bg-gray-100 dark:bg-gray-700' : ''}`}
-                 >
-                     <MoreHorizontal className="w-6 h-6" />
-                 </button>
-                 
-                 <div className="relative">
-                     <input 
-                        type="file" 
-                        ref={fileInputRef} 
-                        className="hidden" 
-                        accept="image/*,video/*" 
-                        onChange={handleFileUpload} 
-                     />
-                     <button 
-                        onClick={() => fileInputRef.current?.click()} 
-                        className={`text-emerald-600 dark:text-emerald-400 hover:text-blue-700 dark:hover:text-blue-700 hover:bg-gray-100 dark:hover:bg-gray-700 p-1.5 rounded-full transition-colors ${pendingMedia ? 'bg-emerald-100 dark:bg-emerald-900/30' : ''}`}
-                        title={language === 'ar' ? 'إرسال صورة/فيديو' : 'Send Photo/Video'}
-                     >
-                         <Image className="w-6 h-6" />
-                     </button>
-                 </div>
-                 
-                 <button 
-                    onClick={() => { setShowEmojiPicker(!showEmojiPicker); setMessageMenuOpen(null); }}
-                    className={`text-emerald-600 dark:text-emerald-400 hover:text-blue-700 dark:hover:text-blue-700 hover:bg-gray-100 dark:hover:bg-gray-700 p-1.5 rounded-full transition-colors ${showEmojiPicker ? 'bg-gray-100 dark:bg-gray-700' : ''}`}
-                 >
-                     <Smile className="w-6 h-6" />
-                 </button>
-             </div>
-
-             {/* Input Area or Recorder */}
+         <div className="flex items-center gap-1.5 w-full min-w-0">
              {isRecording ? (
-                <div 
-                   className="flex-1 flex items-center justify-between bg-red-50 dark:bg-red-900/20 rounded-full px-3 py-1.5 border border-red-200 dark:border-red-800/40 select-none transition-all"
-                   onTouchMove={(e) => handleRecordingTouchOrMouseMove(e.touches[0].clientY)}
-                   onMouseMove={(e) => { if (e.buttons === 1) handleRecordingTouchOrMouseMove(e.clientY); }}
-                >
-                   <div className="flex items-center gap-2 text-red-500 min-w-0">
-                      <div className="w-2.5 h-2.5 bg-red-500 rounded-full animate-ping flex-shrink-0"></div>
-                      <span className="text-xs font-mono font-bold flex-shrink-0">{formatDuration(recordingDuration)}</span>
-                      {isRecordingLocked ? (
-                        <span className="text-[10px] bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-300 px-1.5 py-0.5 rounded-md font-bold flex items-center gap-0.5 whitespace-nowrap">
-                          <Lock className="w-3 h-3" /> {language === 'ar' ? 'مثبّت' : 'Locked'}
-                        </span>
-                      ) : (
-                        <span className="text-[10px] text-gray-500 dark:text-gray-400 font-semibold animate-pulse hidden sm:flex items-center gap-0.5 whitespace-nowrap">
-                          ⬆️ {language === 'ar' ? 'اسحب للأعلى للتثبيت' : 'Swipe up to lock'}
-                        </span>
-                      )}
-                   </div>
-
-                   <div className="flex items-center gap-1.5 flex-shrink-0">
-                      {!isRecordingLocked && (
-                        <button 
-                          onClick={() => updateRecordingLocked(true)} 
-                          className="p-1.5 rounded-full text-gray-500 hover:text-red-500 hover:bg-red-100 dark:hover:bg-red-900/40 transition"
-                          title={language === 'ar' ? 'تثبيت التسجيل' : 'Lock Recording'}
-                        >
-                          <Lock className="w-3.5 h-3.5" />
-                        </button>
-                      )}
-                      <button 
-                        onClick={cancelRecording} 
-                        className="p-1.5 rounded-full text-gray-500 hover:text-red-600 hover:bg-red-100 dark:hover:bg-red-900/40 transition"
-                        title={language === 'ar' ? 'إلغاء التسجيل' : 'Cancel'}
-                      >
-                         <Trash2 className="w-4 h-4 text-red-500" />
-                      </button>
-                      <button 
-                        onClick={stopAndSendRecording} 
-                        className="p-1.5 bg-emerald-600 hover:bg-blue-600 text-white rounded-full transition shadow-sm"
-                        title={language === 'ar' ? 'إرسال التسجيل' : 'Send Recording'}
-                      >
-                         <Send className="w-3.5 h-3.5 rtl:rotate-180" />
-                      </button>
-                   </div>
-                </div>
-             ) : (
-                <form onSubmit={(e) => handleSend(e)} className="flex-1 flex items-center">
-                   <input 
-                     type="text" 
-                     className="w-full bg-gray-100 dark:bg-gray-700 dark:text-white rounded-full px-4 py-2 text-sm outline-none focus:bg-gray-50 dark:focus:bg-gray-600 transition border border-transparent focus:border-emerald-500"
-                     placeholder={pendingMedia ? (language === 'ar' ? "أضف شرحاً..." : "Add caption...") : (replyingTo ? (language === 'ar' ? "الرد على رسالة..." : "Reply to message...") : (t.placeholders_type_message || (language === 'ar' ? "اكتب رسالة..." : "Type a message...")))}
-                     value={inputText}
-                     onChange={(e) => setInputText(e.target.value)}
-                     onFocus={() => { setShowEmojiPicker(false); setShowMoreMenu(false); setMessageMenuOpen(null); }}
-                     disabled={settings.isBlocked}
-                   />
-                </form>
-             )}
-
-             {/* Send or Record Button */}
-             {inputText || pendingMedia ? (
-                 <button 
-                    className="text-emerald-600 dark:text-emerald-400 hover:text-blue-700 dark:hover:text-blue-700 hover:bg-gray-100 dark:hover:bg-gray-700 p-2 rounded-full transition transform hover:scale-110" 
-                    onClick={(e) => handleSend(e)}
+                 <div 
+                    className="w-full flex-1 flex items-center justify-between bg-red-50 dark:bg-red-900/20 rounded-full px-3 py-1.5 border border-red-200 dark:border-red-800/40 select-none transition-all min-w-0 max-w-full overflow-hidden"
+                    onTouchMove={(e) => { if (e.touches.length > 0) handleRecordingTouchOrMouseMove(e.touches[0].clientX, e.touches[0].clientY); }}
+                    onMouseMove={(e) => { if (e.buttons === 1) handleRecordingTouchOrMouseMove(e.clientX, e.clientY); }}
                  >
-                     <Send className="w-5 h-5 rtl:rotate-180" />
-                 </button>
-             ) : (
-                 isRecording ? (
-                    <button 
-                      className="text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 p-2 rounded-full transition transform hover:scale-110" 
-                      onClick={stopAndSendRecording}
-                      title={language === 'ar' ? "إرسال" : "Send"}
-                    >
-                        <Send className="w-5 h-5 rtl:rotate-180" />
-                    </button>
-                 ) : (
-                    <div className="flex items-center">
+                    <div className="flex items-center gap-2 text-red-500 min-w-0 overflow-hidden">
+                       <div className="w-2.5 h-2.5 bg-red-500 rounded-full animate-ping flex-shrink-0"></div>
+                       <span className="text-xs font-mono font-bold flex-shrink-0">{formatDuration(recordingDuration)}</span>
+                       {isRecordingLocked ? (
+                         <span className="text-[10px] bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-300 px-1.5 py-0.5 rounded-md font-bold flex items-center gap-0.5 whitespace-nowrap flex-shrink-0">
+                           <Lock className="w-3 h-3" /> {language === "ar" ? "مثبّت" : "Locked"}
+                         </span>
+                       ) : (
+                         <span className="text-[10px] text-gray-500 dark:text-gray-400 font-semibold animate-pulse truncate min-w-0 flex items-center gap-0.5 whitespace-nowrap">
+                           {language === "ar" ? "⬆️ للتثبيت | ⬅️ للإلغاء" : "⬆️ Lock | ⬅️ Cancel"}
+                         </span>
+                       )}
+                    </div>
+
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                       {!isRecordingLocked && (
+                         <button 
+                           onClick={() => updateRecordingLocked(true)} 
+                           className="p-1.5 rounded-full text-gray-500 hover:text-red-500 hover:bg-red-100 dark:hover:bg-red-900/40 transition"
+                           title={language === "ar" ? "تثبيت التسجيل" : "Lock Recording"}
+                         >
+                           <Lock className="w-3.5 h-3.5" />
+                         </button>
+                       )}
                        <button 
-                          className="text-emerald-600 dark:text-emerald-400 hover:text-blue-700 dark:hover:text-blue-700 hover:bg-gray-100 dark:hover:bg-gray-700 p-2 rounded-full transition transform hover:scale-110 active:scale-95" 
-                          onMouseDown={(e) => startRecording(e)}
-                          onTouchStart={(e) => startRecording(e)}
-                          onClick={(e) => { if (!isRecording) startRecording(e); }}
-                          title={language === 'ar' ? "تسجيل صوتي (اسحب للأعلى للتثبيت)" : "Voice Record (Swipe up to lock)"}
+                         onClick={cancelRecording} 
+                         className="p-1.5 rounded-full text-gray-500 hover:text-red-600 hover:bg-red-100 dark:hover:bg-red-900/40 transition"
+                         title={language === "ar" ? "إلغاء التسجيل" : "Cancel"}
                        >
-                           <Mic className="w-5 h-5" />
+                          <Trash2 className="w-4 h-4 text-red-500" />
                        </button>
                        <button 
-                          className="p-2 rounded-full transition transform hover:scale-110 active:scale-90 text-blue-600"
-                          onMouseDown={handleQuickEmojiDown}
-                          onMouseUp={handleQuickEmojiUp}
-                          onMouseLeave={(e) => { if(isLongPressing) handleQuickEmojiUp(e); }}
-                          onTouchStart={handleQuickEmojiDown}
-                          onTouchEnd={handleQuickEmojiUp}
+                         onClick={stopAndSendRecording} 
+                         className="p-1.5 bg-emerald-600 hover:bg-blue-600 text-white rounded-full transition shadow-sm"
+                         title={language === "ar" ? "إرسال التسجيل" : "Send Recording"}
                        >
-                           {/* Render the Quick Emoji with Scaling Animation */}
-                           <span 
-                               className="text-xl leading-none inline-block transition-transform duration-75 ease-out"
-                               style={{ transform: `scale(${isLongPressing ? quickEmojiSize : 1})` }}
-                           >
-                               {settings.quickEmoji}
-                           </span>
+                          <Send className="w-3.5 h-3.5 rtl:rotate-180" />
                        </button>
                     </div>
-                 )
+                 </div>
+             ) : (
+                 <>
+                   <div className="flex items-center gap-0.5 flex-shrink-0">
+                       <button 
+                          onClick={() => setShowMoreMenu(!showMoreMenu)} 
+                          className={`text-emerald-600 dark:text-emerald-400 hover:text-blue-700 dark:hover:text-blue-700 hover:bg-gray-100 dark:hover:bg-gray-700 p-1.5 rounded-full transition-colors ${showMoreMenu ? "bg-gray-100 dark:bg-gray-700" : ""}`}
+                       >
+                           <MoreHorizontal className="w-6 h-6" />
+                       </button>
+                       
+                       <div className="relative">
+                           <input 
+                              type="file" 
+                              ref={fileInputRef} 
+                              className="hidden" 
+                              accept="image/*,video/*" 
+                              onChange={handleFileUpload} 
+                           />
+                           <button 
+                              onClick={() => fileInputRef.current?.click()} 
+                              className={`text-emerald-600 dark:text-emerald-400 hover:text-blue-700 dark:hover:text-blue-700 hover:bg-gray-100 dark:hover:bg-gray-700 p-1.5 rounded-full transition-colors ${pendingMedia ? "bg-emerald-100 dark:bg-emerald-900/30" : ""}`}
+                              title={language === "ar" ? "إرسال صورة/فيديو" : "Send Photo/Video"}
+                           >
+                               <Image className="w-6 h-6" />
+                           </button>
+                       </div>
+                       
+                       <button 
+                          onClick={() => { setShowEmojiPicker(!showEmojiPicker); setMessageMenuOpen(null); }}
+                          className={`text-emerald-600 dark:text-emerald-400 hover:text-blue-700 dark:hover:text-blue-700 hover:bg-gray-100 dark:hover:bg-gray-700 p-1.5 rounded-full transition-colors ${showEmojiPicker ? "bg-gray-100 dark:bg-gray-700" : ""}`}
+                       >
+                           <Smile className="w-6 h-6" />
+                       </button>
+                   </div>
+
+                   <form onSubmit={(e) => handleSend(e)} className="flex-1 flex items-center min-w-0">
+                      <input 
+                        type="text" 
+                        className="w-full bg-gray-100 dark:bg-gray-700 dark:text-white rounded-full px-4 py-2 text-sm outline-none focus:bg-gray-50 dark:focus:bg-gray-600 transition border border-transparent focus:border-emerald-500"
+                        ref={textInputRef}
+                         placeholder={pendingMedia ? (language === "ar" ? "أضف شرحاً..." : "Add caption...") : (replyingTo ? (language === "ar" ? "الرد على رسالة..." : "Reply to message...") : (t.placeholders_type_message || (language === "ar" ? "اكتب رسالة..." : "Type a message...")))}
+                        value={inputText}
+                        onChange={(e) => setInputText(e.target.value)}
+                        onFocus={() => { setShowEmojiPicker(false); setShowMoreMenu(false); setMessageMenuOpen(null); }}
+                        disabled={settings.isBlocked}
+                      />
+                   </form>
+
+                   {inputText || pendingMedia ? (
+                       <button 
+                          className="text-emerald-600 dark:text-emerald-400 hover:text-blue-700 dark:hover:text-blue-700 hover:bg-gray-100 dark:hover:bg-gray-700 p-2 rounded-full transition transform hover:scale-110 flex-shrink-0" 
+                          onClick={(e) => handleSend(e)}
+                       >
+                           <Send className="w-5 h-5 rtl:rotate-180" />
+                       </button>
+                   ) : (
+                       <div className="flex items-center flex-shrink-0">
+                          <button 
+                             className="text-emerald-600 dark:text-emerald-400 hover:text-blue-700 dark:hover:text-blue-700 hover:bg-gray-100 dark:hover:bg-gray-700 p-2 rounded-full transition transform hover:scale-110 active:scale-95" 
+                             onMouseDown={(e) => startRecording(e)}
+                             onTouchStart={(e) => startRecording(e)}
+                             onClick={(e) => { if (!isRecording) startRecording(e); }}
+                             title={language === "ar" ? "تسجيل صوتي (اسحب للأعلى للتثبيت | لليسار للإلغاء)" : "Voice Record (Swipe up to lock | Left to cancel)"}
+                          >
+                              <Mic className="w-5 h-5" />
+                          </button>
+                          <button 
+                             className="p-2 rounded-full transition transform hover:scale-110 active:scale-90 text-blue-600"
+                             onMouseDown={handleQuickEmojiDown}
+                             onMouseUp={handleQuickEmojiUp}
+                             onMouseLeave={(e) => { if(isLongPressing) handleQuickEmojiUp(e); }}
+                             onTouchStart={handleQuickEmojiDown}
+                             onTouchEnd={handleQuickEmojiUp}
+                          >
+                              {/* Render the Quick Emoji with Scaling Animation */}
+                              <span 
+                                  className="text-xl leading-none inline-block transition-transform duration-75 ease-out"
+                                  style={{ transform: `scale(${isLongPressing ? quickEmojiSize : 1})` }}
+                              >
+                                  {settings.quickEmoji}
+                              </span>
+                          </button>
+                       </div>
+                   )}
+                 </>
              )}
          </div>
       </div>
@@ -2517,7 +2657,21 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ user, onClose, currentUser, ind
                      style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoomLevel})`, transition: isDragging ? 'none' : 'transform 0.2s ease-out' }}
                    />
                )}
-           </div>
+            </div>
+
+            {/* Media Viewer Caption / File Name Overlay */}
+            {(viewingMedia.message.text || viewingMedia.message.fileName) && (
+               <div className="absolute bottom-6 left-1/2 -translate-x-1/2 max-w-xl w-[90%] bg-black/80 backdrop-blur-md px-4 py-2.5 rounded-2xl text-white text-center z-[10002] border border-white/10 shadow-2xl animate-fadeIn">
+                   {viewingMedia.message.fileName && (
+                       <p className="text-xs text-gray-300 truncate max-w-full font-medium mb-0.5" title={viewingMedia.message.fileName}>
+                           📎 {viewingMedia.message.fileName}
+                       </p>
+                   )}
+                   {viewingMedia.message.text && (
+                       <p className="text-sm font-normal break-words max-h-24 overflow-y-auto leading-relaxed dir-auto">{viewingMedia.message.text}</p>
+                   )}
+               </div>
+            )}
         </div>,
         document.body
       )}

@@ -764,6 +764,7 @@ const AppContent: React.FC = () => {
         activeChats={activeChats}
         currentUser={currentUser}
         handleCloseChat={handleCloseChat}
+        onViewProfile={handleFriendClick}
         appNotification={appNotification}
         setAppNotification={setAppNotification}
         viewingStoryIndex={viewingStoryIndex}
