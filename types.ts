@@ -70,6 +70,7 @@ export interface StoryMusicTrack {
   artist: string;
   genre: string;
   audioUrl: string;
+  coverUrl?: string;
 }
 
 export interface Story {

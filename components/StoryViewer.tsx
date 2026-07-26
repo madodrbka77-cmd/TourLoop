@@ -4,7 +4,7 @@ import { Plus, X, Pause, Play, Heart, Send, Smile, ChevronLeft, ChevronRight, Ch
 import { User, Story, StoryMusicTrack } from '../types';
 import { UserStoryGroup } from './StoryReel';
 import { useLanguage } from '../context/LanguageContext';
-import { playAudio } from '../utils/audio';
+import { playAudio, playStoryMusicTrack, stopStoryMusicTrack } from '../utils/audio';
 
 interface StoryViewerProps {
   initialGroupIndex: number;
@@ -93,39 +93,54 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
 
   // Background Music Playback Control
   useEffect(() => {
+      stopStoryMusicTrack();
+
       if (musicAudioRef.current) {
           musicAudioRef.current.pause();
           musicAudioRef.current = null;
       }
 
-      if (currentStory?.musicTrack?.audioUrl && !isMuted) {
-          const music = new Audio(currentStory.musicTrack.audioUrl);
-          music.loop = true;
-          music.volume = 0.4;
-          if (!isPaused) {
-              music.play().catch(() => {});
+      if (currentStory?.musicTrack && !isMuted && !isPaused) {
+          if (currentStory.musicTrack.audioUrl) {
+              const music = new Audio(currentStory.musicTrack.audioUrl);
+              music.loop = true;
+              music.volume = 0.5;
+              music.play().catch(() => {
+                  // Fallback to Web Audio synthesizer if media playback fails
+                  if (currentStory.musicTrack) {
+                      playStoryMusicTrack(currentStory.musicTrack.id, 0.25);
+                  }
+              });
+              musicAudioRef.current = music;
+          } else {
+              playStoryMusicTrack(currentStory.musicTrack.id, 0.25);
           }
-          musicAudioRef.current = music;
       }
 
       return () => {
+          stopStoryMusicTrack();
           if (musicAudioRef.current) {
               musicAudioRef.current.pause();
               musicAudioRef.current = null;
           }
       };
-  }, [currentStory, isMuted]);
+  }, [currentStory, isMuted, isPaused]);
 
-  // Sync music pause/play
+  // Sync music pause/play when pausing or muting
   useEffect(() => {
-      if (musicAudioRef.current) {
-          if (isPaused || isMuted) {
+      if (isPaused || isMuted) {
+          stopStoryMusicTrack();
+          if (musicAudioRef.current) {
               musicAudioRef.current.pause();
-          } else {
+          }
+      } else if (currentStory?.musicTrack) {
+          if (musicAudioRef.current) {
               musicAudioRef.current.play().catch(() => {});
+          } else if (!currentStory.musicTrack.audioUrl) {
+              playStoryMusicTrack(currentStory.musicTrack.id, 0.25);
           }
       }
-  }, [isPaused, isMuted]);
+  }, [isPaused, isMuted, currentStory]);
 
   // Video Playback Control
   useEffect(() => {
@@ -145,8 +160,6 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
       const isCurrentVideo = currentStory ? isVideo(currentStory.mediaUrl) : false;
 
       if (currentStory && !isPaused && !showViewersModal && !showDeleteConfirm) {
-          const tickRate = isCurrentVideo ? 0 : 1.5; 
-
           interval = setInterval(() => {
               setStoryProgress(prev => {
                   if (prev >= 100) {
@@ -156,6 +169,15 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
                   if (isCurrentVideo && videoRef.current && !videoRef.current.paused && videoRef.current.duration) {
                       return (videoRef.current.currentTime / videoRef.current.duration) * 100;
                   }
+
+                  if (musicAudioRef.current && musicAudioRef.current.duration && !musicAudioRef.current.paused) {
+                      const totalDuration = Math.min(15, musicAudioRef.current.duration);
+                      return Math.min(100, (musicAudioRef.current.currentTime / totalDuration) * 100);
+                  }
+
+                  // 15s for stories with music, 8s for standard image/text stories (smooth and non-rushed)
+                  const storyDuration = currentStory.musicTrack ? 15000 : 8000;
+                  const tickRate = (50 / storyDuration) * 100;
                   return prev + tickRate;
               });
           }, 50); 
@@ -209,9 +231,11 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
 
   const triggerEmoji = (char: string) => {
       playAudio('react');
+      // If heart, float a green heart 💚
+      const emojiChar = (char === "❤️" || char === "💚") ? "💚" : char;
       const newEmoji: FloatingEmoji = {
-          id: Date.now(),
-          char,
+          id: Date.now() + Math.random(),
+          char: emojiChar,
           left: Math.random() * 60 + 20 
       };
       setFloatingEmojis(prev => [...prev, newEmoji]);
@@ -220,7 +244,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
           setFloatingEmojis(prev => prev.filter(e => e.id !== newEmoji.id));
       }, 2000);
       
-      if (char === "❤️" && !isStoryLiked) {
+      if ((char === "❤️" || char === "💚") && !isStoryLiked) {
           setIsStoryLiked(true);
       }
   };
@@ -301,7 +325,7 @@ const StoryViewer: React.FC<StoryViewerProps> = ({
       if (!isStoryLiked) {
           playAudio('like');
           setIsStoryLiked(true);
-          triggerEmoji("❤️");
+          triggerEmoji("💚");
       } else {
           playAudio('pop');
           setIsStoryLiked(false);

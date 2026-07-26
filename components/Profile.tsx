@@ -203,6 +203,30 @@ const Profile: React.FC<ProfileProps> = ({
       return stories.filter(s => s.userId === profileUser.id);
   }, [stories, profileUser.id, canViewContent]);
 
+  const storyGroups: UserStoryGroup[] = useMemo(() => {
+      if (!canViewContent) return [];
+      const groupsMap = new Map<string, UserStoryGroup>();
+      stories.forEach(story => {
+          if (!groupsMap.has(story.userId)) {
+              groupsMap.set(story.userId, {
+                  userId: story.userId,
+                  userName: story.userName,
+                  userAvatar: story.userAvatar,
+                  stories: [],
+                  latestTimestamp: 0
+              });
+          }
+          groupsMap.get(story.userId)!.stories.push(story);
+      });
+      const groups = Array.from(groupsMap.values());
+      const profileIndex = groups.findIndex(g => g.userId === profileUser.id);
+      if (profileIndex > 0) {
+          const [pGroup] = groups.splice(profileIndex, 1);
+          groups.unshift(pGroup);
+      }
+      return groups;
+  }, [stories, profileUser.id, canViewContent]);
+
   const hasActiveStory = canViewContent && userStories.length > 0;
 
   const viewingPost = useMemo(() => {
@@ -519,11 +543,19 @@ const Profile: React.FC<ProfileProps> = ({
       )}
 
       {isViewingStory && hasActiveStory && canViewContent && typeof document !== 'undefined' && createPortal(
-          <ProfileStoryOverlay 
-              userStories={userStories}
+          <StoryViewer 
+              initialGroupIndex={0}
+              groups={storyGroups.length > 0 ? storyGroups : [{
+                  userId: profileUser.id,
+                  userName: profileUser.name,
+                  userAvatar: profileUser.avatar,
+                  stories: userStories,
+                  latestTimestamp: 0
+              }]}
               currentUser={currentUser}
               onClose={() => setIsViewingStory(false)}
               onAddStory={onAddStory || (() => {})}
+              onDeleteStory={onDeleteStory}
           />,
           document.body
       )}
