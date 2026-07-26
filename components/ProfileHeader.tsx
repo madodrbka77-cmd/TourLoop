@@ -9,6 +9,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { useNotify } from '../context/NotificationContext';
 import { playAudio } from '../utils/audio';
 import { MediaPreviewCropModal } from './MediaPreviewCropModal';
+import { CreateStoryModal } from './CreateStoryModal';
 
 interface ProfileHeaderProps {
   currentUser: User;
@@ -72,6 +73,9 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   const [showLockModal, setShowLockModal] = useState(false);
   const [isProfileLocked, setIsProfileLocked] = useState((profileUser as any).isLocked === true);
   const [isLocking, setIsLocking] = useState(false);
+
+  // Story Creation Modal State
+  const [showCreateStoryModal, setShowCreateStoryModal] = useState(false);
 
   // Media Preview & Crop State
   const [showPreviewModal, setShowPreviewModal] = useState(false);
@@ -417,7 +421,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                  {isOwnProfile ? (
                      <>
                         <button 
-                            onClick={() => { playAudio('pop'); storyInputRef.current?.click(); }}
+                            onClick={() => { playAudio('pop'); setShowCreateStoryModal(true); }}
                             className="bg-fb-blue text-white px-4 py-2 rounded-md font-semibold flex items-center gap-2 hover:bg-blue-700 transition shadow-sm"
                         >
                             <Plus className="w-5 h-5" />
@@ -700,6 +704,14 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             type={previewType}
             onClose={() => { setShowPreviewModal(false); setPreviewImage(null); }}
             onConfirm={handleConfirmPreview}
+        />
+
+        {/* Synchronized Create Story Modal */}
+        <CreateStoryModal
+            isOpen={showCreateStoryModal}
+            onClose={() => setShowCreateStoryModal(false)}
+            currentUser={currentUser}
+            onAddStory={onAddStory}
         />
     </div>
   );
